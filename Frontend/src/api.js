@@ -3,10 +3,11 @@ const API_BASE_URL = import.meta.env.VITE_BACKEND_URL + '/api';
 // Helper function to get auth headers
 const getAuthHeaders = () => {
   const token = sessionStorage.getItem('accessToken');
-  return {
+  const headers = {
+    Authorization: token ? `Bearer ${token}` : '',
     'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : '',
   };
+  return headers;
 };
 
 // Helper function to get auth headers for file uploads
@@ -46,26 +47,39 @@ export const getCurrentUser = async () => {
  */
 export const updateProfile = async (profileData, avatarFile = null) => {
   const formData = new FormData();
-  
-  // Add profile fields
-  Object.keys(profileData).forEach(key => {
-    if (profileData[key] !== undefined && profileData[key] !== null) {
-      formData.append(key, profileData[key]);
-    }
-  });
-  
+
+  // Helper to recursively append data to FormData
+  const appendFormData = (data, parentKey = '') => {
+    Object.keys(data).forEach(key => {
+      const value = data[key];
+      const formKey = parentKey ? `${parentKey}[${key}]` : key;
+
+      if (value === undefined || value === null) return;
+
+      if (typeof value === 'object' && !(value instanceof File)) {
+        appendFormData(value, formKey);
+      } else {
+        formData.append(formKey, value);
+      }
+    });
+  };
+
+  appendFormData(profileData);
+
   // Add avatar file if provided
   if (avatarFile) {
     formData.append('avatar', avatarFile);
   }
-
+  
   const response = await fetch(`${API_BASE_URL}/user/profile`, {
     method: 'PATCH',
     headers: getFileUploadHeaders(),
     body: formData,
   });
+
   return handleResponse(response);
 };
+
 
 /**
  * Logout user
@@ -100,7 +114,7 @@ export const deleteAccount = async (password) => {
  * @param {string} workspaceData.description - Workspace description
  */
 export const createWorkspace = async (workspaceData) => {
-  const response = await fetch(`${API_BASE_URL}/workspace/create`, {
+const response = await fetch(`${API_BASE_URL}/workspace/create`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify(workspaceData),
@@ -244,6 +258,47 @@ export const searchWorkspaceMembers = async (workspaceId, query) => {
   });
   return handleResponse(response);
 };
+
+/**
+ * Request to join a workspace
+ * @param {string} workspaceId - ID of the workspace
+ */
+export const requestToJoinWorkspace = async (workspaceId) => {
+  console.log(getAuthHeaders());
+  const response = await fetch(`${API_BASE_URL}/workspace/request/${workspaceId}`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+  });
+  
+  return handleResponse(response);
+};
+
+/**
+ * Accept a pending workspace join request (Admin only)
+ * @param {string} workspaceId - ID of the workspace
+ * @param {string} memberId - ID of the user whose request is being accepted
+ */
+export const acceptWorkspaceRequest = async (workspaceId, memberId) => {
+  const response = await fetch(`${API_BASE_URL}/workspace/${workspaceId}/accept-request/${memberId}`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+};
+
+/**
+ * Reject a pending workspace join request (Admin only)
+ * @param {string} workspaceId - ID of the workspace
+ * @param {string} memberId - ID of the user whose request is being rejected
+ */
+export const rejectWorkspaceRequest = async (workspaceId, memberId) => {
+  const response = await fetch(`${API_BASE_URL}/workspace/${workspaceId}/reject/${memberId}`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+};
+
 
 // ==================== DOCUMENT API FUNCTIONS ====================
 
@@ -688,7 +743,6 @@ export const login = async (identifier, password) => {
  * @param {string} userData.username - Username
  * @param {string} userData.email - Email
  * @param {string} userData.phone - Phone number
- * @param {string} userData.password - Password
  */
 export const signup = async (userData) => {
   const response = await fetch(`${API_BASE_URL}/user/signup`, {
@@ -700,6 +754,56 @@ export const signup = async (userData) => {
   });
   return handleResponse(response);
 };
+
+/**
+ * @param {Object} email
+ */
+
+export const rejectVerification = async ({ email }) => {
+  const response = await fetch(`${API_BASE_URL}/user/unverify-signup`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email }),
+  });
+  return handleResponse(response);
+};
+/**
+ * @param {Object} verificationData
+ * @param {Object} otp - User Otp
+ * @param {Object} email - User email
+ */
+
+export const verifyOtp = async(verificationData) => {
+  const response = await fetch(`${API_BASE_URL}/user/verify-otp`,{
+    method : 'POST',
+         headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(verificationData),
+  });
+  return handleResponse(response);
+};
+
+/**
+ * @param {Object} passwordData
+ * @param {Object} email
+ * @param {Object} password
+ */
+
+export const setPassword = async (passwordData) => {
+  const response = await fetch(`${API_BASE_URL}/user/set-password`,
+  {
+    method : 'POST',
+         headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(passwordData),
+  });
+  return handleResponse(response);
+}
+
 
 /**
  * Refresh access token

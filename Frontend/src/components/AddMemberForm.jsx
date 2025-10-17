@@ -1,20 +1,22 @@
 import React, { useState } from 'react';
 import { searchMembers, addWorkspaceMember } from '../api';
+import { Plus,  X, Search, User, Mail } from 'lucide-react';
 
 const roles = ["Viewer", "Editor", "Admin"];
 
-const AddMemberForm = ({ workspaceId, onMemberAdded }) => {
+const AddMemberForm = ({ workspaceId, onMemberAdded, onClose }) => {
   const [search, setSearch] = useState('');
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
   const [results, setResults] = useState([]);
   const [selectedRole, setSelectedRole] = useState('Viewer');
-  const [addingIds, setAddingIds] = useState([]);
   const [addError, setAddError] = useState('');
   const [addSuccess, setAddSuccess] = useState(false);
 
   const handleSearch = async (e) => {
     e.preventDefault();
+    if (!search.trim()) return;
+    
     setSearching(true);
     setSearchError('');
     setResults([]);
@@ -29,86 +31,156 @@ const AddMemberForm = ({ workspaceId, onMemberAdded }) => {
   };
 
   const handleAdd = async (user) => {
-    setAddingIds(ids => [...ids, user._id]); // show loading for this user
     setAddError('');
     setAddSuccess(false);
     try {
       await addWorkspaceMember(workspaceId, { userId: user._id, role: selectedRole });
       setAddSuccess(true);
-      if (onMemberAdded) onMemberAdded(user);
+      setTimeout(() => {
+        if (onMemberAdded) onMemberAdded(user);
+        if (onClose) onClose();
+      }, 1000);
     } catch (err) {
       setAddError(err.message || 'Failed to add member');
-    } finally {
-      setAddingIds(ids => ids.filter(id => id !== user._id));
-    }
+    } 
   };
 
   return (
     <>
       {/* Header */}
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-semibold">Add Workspace Member</h2>
-
+      <div className="flex justify-start items-center pb-2">
+          <h2 className="text-2xl font-semibold text-base-content">Add Team Member</h2>
       </div>
+      <div>
+        {/* Search Section */}
+        <div className="mb-6">
+          <form onSubmit={handleSearch} className="flex gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-base-content/50" size={20} />
+              <input
+                className="w-full pl-10 pr-4 py-3 border border-base-300 rounded-xl bg-base-100 text-base-content placeholder-base-content/50 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search by name or email address..."
+              />
+            </div>
+            <button
+              type="submit"
+              className="px-6 py-3 rounded-xl bg-info text-info-content font-medium hover:bg-info/90 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              disabled={searching || !search.trim()}
+            >
+              {searching ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-info-content/30 border-t-info-content rounded-full animate-spin" />
+                  Searching...
+                </>
+              ) : (
+                <>
+                  <Search size={18} />
+                  Search
+                </>
+              )}
+            </button>
+          </form>
+          {searchError && (
+            <div className="mt-3 p-3 rounded-lg bg-error/10 border border-error/20 text-error-content">
+              {searchError}
+            </div>
+          )}
+        </div>
 
-      {/* Search */}
-      <form onSubmit={handleSearch} className="flex gap-2 mb-4">
-        <input
-          className="border rounded p-2 flex-grow focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search members by name or email"
-        />
-        <button
-          className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700"
-          disabled={searching}
-        >{searching ? "Searching..." : "Search"}</button>
-      </form>
-      {searchError && <p className="text-red-600 mb-2">{searchError}</p>}
+        {/* Role Picker */}
+        <div className="mb-6 p-4 bg-base-200 rounded-xl">
+          <label htmlFor="role" className="block text-sm font-medium text-base-content mb-2">
+            Assign Role
+          </label>
+          <div className="flex items-center gap-3">
+            <select
+              id="role"
+              value={selectedRole}
+              onChange={e => setSelectedRole(e.target.value)}
+              className="flex-1 px-4 py-3 border border-base-300 rounded-xl bg-base-100 text-base-content focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+            >
+              {roles.map(r => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+            <div className="text-sm text-base-content/70">
+              Can {selectedRole === 'Admin' ? 'manage everything' : selectedRole === 'Editor' ? 'edit content' : 'view only'}
+            </div>
+          </div>
+        </div>
 
-      {/* Role Picker */}
-      <div className="flex items-center gap-2 mb-4">
-        <label htmlFor="role" className="font-medium">Role:</label>
-        <select
-          id="role"
-          value={selectedRole}
-          onChange={e => setSelectedRole(e.target.value)}
-          className="border rounded px-2 py-1"
-        >
-          {roles.map(r => <option key={r}>{r}</option>)}
-        </select>
-      </div>
-
-      {/* Results */}
-      <div className="flex-1 overflow-y-auto">
-        {results.length > 0 ? (
-          <ul className="divide-y divide-gray-200">
-            {results.map(user => (
-              <li key={user._id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded">
-                <span>
-                  <span className="font-medium">{user.name}</span>
-                  <span className="ml-2 text-gray-500 text-sm">{user.email}</span>
-                </span>
-                <button
-                  className="px-3 py-1 rounded bg-green-600 text-white hover:bg-green-700 text-sm"
-                  disabled={addingIds.includes(user._id)}
-                  onClick={() => handleAdd(user)}
+        {/* Results */}
+        <div className="space-y-3">
+          <h3 className="text-lg font-medium text-base-content mb-3">
+            Search Results {results.length > 0 && `(${results.length})`}
+          </h3>
+          
+          {results.length > 0 ? (
+            <div className="space-y-2 overflow-y-auto">
+              {results.map(user => (
+                <div 
+                  key={user._id} 
+                  className="flex items-center justify-between p-4 bg-base-200 rounded-xl hover:bg-base-300 transition-all duration-200 border border-transparent hover:border-primary/20"
                 >
-                  {addingIds.includes(user._id) ? "Adding..." : "Add"}
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : searching ? (
-          <p className="text-gray-500">Searching...</p>
-        ) : (
-          <p className="text-gray-400">No results. Try searching above.</p>
-        )}
-      </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-primary text-primary-content rounded-full flex items-center justify-center font-semibold">
+                      {user.name?.charAt(0)?.toUpperCase() || <User size={20} />}
+                    </div>
+                    <div>
+                      <div className="font-medium text-base-content">{user.name}</div>
+                      <div className="flex items-center gap-1 text-sm text-base-content/70">
+                        <Mail size={14} />
+                        {user.email}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    className="px-4 py-2 rounded-lg bg-success text-success-content hover:bg-success/90 active:scale-95 transition-all duration-200 flex items-center gap-2 font-medium"
+                    onClick={() => handleAdd(user)}
+                  >
+                    <Plus size={18} />
+                    Add
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : searching ? (
+            <div className="text-center py-8">
+              <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+              <p className="text-base-content/70">Searching for members...</p>
+            </div>
+          ) : search ? (
+            <div className="text-center py-8 bg-base-200 rounded-xl">
+              <Search size={48} className="text-base-content/30 mx-auto mb-3" />
+              <p className="text-base-content/70">No members found. Try a different search term.</p>
+            </div>
+          ) : (
+            <div className="text-center py-8 bg-base-200 rounded-xl">
+              <User size={48} className="text-base-content/30 mx-auto mb-3" />
+              <p className="text-base-content/70">Search for members by name or email address</p>
+            </div>
+          )}
+        </div>
 
-      {addError && <p className="text-red-600 mt-2">{addError}</p>}
-      {addSuccess && <p className="text-green-600 mt-2">Member added!</p>}
+        {/* Status Messages */}
+        <div className="mt-4 space-y-2">
+          {addError && (
+            <div className="p-3 rounded-lg bg-error/10 border border-error/20 text-error-content flex items-center gap-2">
+              <div className="w-2 h-2 bg-error-content rounded-full"></div>
+              {addError}
+            </div>
+          )}
+          {addSuccess && (
+            <div className="p-3 rounded-lg bg-success/10 border border-success/20 text-success-content flex items-center gap-2">
+              <div className="w-2 h-2 bg-success-content rounded-full"></div>
+              Member added successfully! Closing...
+            </div>
+          )}
+        </div>
+      </div>
     </>
   );
 };

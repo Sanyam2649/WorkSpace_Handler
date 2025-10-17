@@ -1,10 +1,12 @@
 // components/documentForm.jsx
 import React, { useState, useEffect } from "react";
+import { FileText, X, Upload, Save, Edit3 } from "lucide-react";
 
 export default function DocumentForm({ initialData = {}, onSubmit, onClose }) {
   const [title, setTitle] = useState(initialData.title || "");
   const [content, setContent] = useState(initialData.content || "");
   const [files, setFiles] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     setTitle(initialData.title || "");
@@ -16,86 +18,164 @@ export default function DocumentForm({ initialData = {}, onSubmit, onClose }) {
     setFiles(e.target.files);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    await onSubmit(
-      { title, content },
-      files.length > 0 ? files : null
-    );
+  const removeFile = (index) => {
+    const newFiles = Array.from(files).filter((_, i) => i !== index);
+    const dataTransfer = new DataTransfer();
+    newFiles.forEach(file => dataTransfer.items.add(file));
+    setFiles(dataTransfer.files);
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await onSubmit(
+        { title, content },
+        files.length > 0 ? files : null
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const isEditMode = !!initialData._id;
+
   return (
-    <>
-      <h2 className="text-2xl font-semibold mb-4">
-        {initialData._id ? "Edit Document" : "Create Document"}
-      </h2>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        {/* Title */}
-        <div className="flex flex-col">
-          <label htmlFor="title" className="font-medium mb-1">
-            Title
+    <div className="space-y-6 animate-in fade-in duration-300">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Title Field */}
+        <div className="space-y-3">
+          <label htmlFor="title" className="block text-sm font-semibold text-base-content">
+            Document Title
           </label>
-          <input
-            type="text"
-            id="title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="border rounded p-2 w-full focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            placeholder="Document title"
-            required
-          />
+          <div className="relative">
+            <input
+              type="text"
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full px-4 py-3 bg-base-100 border-2 border-base-300 rounded-xl text-base-content placeholder-base-content/50 focus:border-primary focus:ring-4 focus:ring-primary/15 transition-all duration-200"
+              placeholder="Enter a descriptive title..."
+              required
+              disabled={isSubmitting}
+            />
+          </div>
         </div>
-        {/* Content */}
-        <div className="flex flex-col">
-          <label htmlFor="content" className="font-medium mb-1">
-            Content
+
+        {/* Content Field */}
+        <div className="space-y-3">
+          <label htmlFor="content" className="block text-sm font-semibold text-base-content">
+            Document Content
           </label>
-          <textarea
-            id="content"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            className="border rounded p-2 w-full h-20 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500 overflow-y-auto"
-            placeholder="Write your document content..."
-            required
-          />
+          <div className="relative">
+            <textarea
+              id="content"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              className="w-full px-4 py-3 bg-base-100 border-2 border-base-300 rounded-xl text-base-content placeholder-base-content/50 focus:border-primary focus:ring-4 focus:ring-primary/15 transition-all duration-200 resize-vertical min-h-32"
+              placeholder="Write your document content here..."
+              required
+              disabled={isSubmitting}
+              rows={6}
+            />
+            <div className="absolute bottom-3 right-3 text-xs text-base-content/40">
+              {content.length} characters
+            </div>
+          </div>
         </div>
-        {/* Files Upload */}
-        <div className="flex flex-col">
-          <label htmlFor="files" className="font-medium mb-1">
+
+        {/* File Upload */}
+        <div className="space-y-3">
+          <label htmlFor="files" className="block text-sm font-semibold text-base-content">
             Attach Files
           </label>
-          <input
-            type="file"
-            id="files"
-            multiple
-            onChange={handleFileChange}
-            className="border rounded p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
+          <div className="border-2 border-dashed border-base-300 rounded-xl p-6 transition-all duration-200 hover:border-primary/50 hover:bg-base-200/50">
+            <input
+              type="file"
+              id="files"
+              multiple
+              onChange={handleFileChange}
+              className="hidden"
+              disabled={isSubmitting}
+            />
+            <label htmlFor="files" className="cursor-pointer block text-center">
+              <div className="w-16 h-16 bg-gradient-to-br from-accent to-info/20 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                <Upload className="text-accent" size={24} />
+              </div>
+              <p className="text-base-content font-medium mb-1">
+                Click to upload files
+              </p>
+              <p className="text-base-content/60 text-sm">
+                Supports multiple files • Max 10MB each
+              </p>
+            </label>
+          </div>
+
+          {/* File List */}
           {files.length > 0 && (
-            <ul className="mt-2 list-disc list-inside text-sm text-gray-600">
-              {Array.from(files).map((file, idx) => (
-                <li key={idx}>{file.name}</li>
-              ))}
-            </ul>
+            <div className="space-y-2 animate-in fade-in duration-300">
+              <p className="text-sm font-medium text-base-content">
+                Selected files ({files.length})
+              </p>
+              <div className="space-y-2 max-h-32 overflow-y-auto">
+                {Array.from(files).map((file, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-3 bg-base-200 border border-base-300 rounded-lg group hover:bg-base-300 transition-all duration-200"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <FileText size={16} className="text-base-content/60 flex-shrink-0" />
+                      <span className="text-sm text-base-content truncate">
+                        {file.name}
+                      </span>
+                      <span className="text-xs text-base-content/40 flex-shrink-0">
+                        ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(index)}
+                      className="p-1 hover:bg-error/20 rounded transition-colors duration-200 group-hover:opacity-100 opacity-60"
+                      disabled={isSubmitting}
+                    >
+                      <X size={14} className="text-error" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
-        {/* Submit */}
-        <div className="flex justify-end gap-2 mt-4">
+
+        {/* Action Buttons */}
+        <div className="flex justify-end gap-3 pt-4 border-t-2 border-base-300">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400"
+            className="px-6 py-3 bg-base-200 text-base-content border-2 border-base-300 rounded-xl hover:bg-base-300 hover:border-base-400 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isSubmitting}
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700"
+            className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-primary-content rounded-xl hover:shadow-lg transform hover:scale-105 transition-all duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center gap-2"
+            disabled={isSubmitting}
           >
-            {initialData._id ? "Update Document" : "Create Document"}
+            {isSubmitting ? (
+              <>
+                <div className="loading loading-spinner loading-sm"></div>
+                {isEditMode ? "Updating..." : "Creating..."}
+              </>
+            ) : (
+              <>
+                <Save size={18} />
+                {isEditMode ? "Update Document" : "Create Document"}
+              </>
+            )}
           </button>
         </div>
       </form>
-    </>
+    </div>
   );
 }

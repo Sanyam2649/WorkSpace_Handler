@@ -21,7 +21,7 @@ const Sidebar = () => {
       console.error('Logout failed:', err);
     } finally {
       clearAuth();
-      navigate('/auth');
+      navigate('/login');
     }
   };
 

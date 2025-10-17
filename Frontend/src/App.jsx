@@ -1,50 +1,74 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
-import {useDispatch, useSelector } from 'react-redux';
+import { useDispatch} from 'react-redux';
 import Auth from './pages/Auth';
 import Dashboard from './pages/Dashboard';
 import Workspace from './pages/Workspace';
 import WorkspacesPage from './pages/workspaces';
 import Analytics from './pages/Analytics';
 import Profile from './pages/Profile';
-// import Settings from './pages/Settings';
 import ProtectedRoute from './components/ProtectedRoute';
 import { fetchUser } from './reducer/thunks/userThunk'; 
-import './App.css';
-import './styles/auth.css';
 import OAuthRedirectHandler from './components/oAuthHandler';
-
+import { fetchAllWorkspaces } from './reducer/thunks/WorkSpaceThunk';
+import WorkspaceDetail from './subComponent/workSpaceDetail';
+import Login from './components/Login';
+import SignupFlow from './components/Signup';
+import Chat from './components/Chat';
+import LandingPage from './pages/LandingPage';
 
 function App() {
-  const dispatch = useDispatch();
-  const { value: user } = useSelector((state) => state.user);
+  const dispatch = useDispatch();  
   useEffect(() => {
     dispatch(fetchUser());
+    dispatch(fetchAllWorkspaces());
   }, [dispatch]);
-
-  const isAuth = Boolean(user);
 
   return (
     <Router>
-      <div className="App">
+      <div className="App min-h-screen bg-base-100 font-fredoka">
         <Routes>
-          <Route 
-            path="/auth" 
-            element={isAuth ? <Navigate to="/dashboard" replace /> : <Auth />} 
-          />
-          <Route path="/login" element={<OAuthRedirectHandler />} />
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/workspace/:id" element={<ProtectedRoute><Workspace /></ProtectedRoute>} />
-          <Route path="/workspace" element={<ProtectedRoute><WorkspacesPage /></ProtectedRoute>} />
-          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-          <Route path="/analytics" element={<ProtectedRoute><Analytics/></ProtectedRoute>}/>
-          <Route path="/" element={isAuth ? <Navigate to="/dashboard" replace /> : <Navigate to="/auth" replace />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* Public Routes */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<SignupFlow />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/auth-login" element={<OAuthRedirectHandler />} />
+          
+          {/* Protected Routes */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/workspace/:id" element={
+            <ProtectedRoute>
+              <Workspace />
+            </ProtectedRoute>
+          } />
+          <Route path="/workspace" element={
+            <ProtectedRoute>
+              <WorkspacesPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          } />
+          <Route path="/analytics" element={
+            <ProtectedRoute>
+              <Analytics />
+            </ProtectedRoute>
+          } />
+          
+          {/* Fallback Routes */}
+          <Route path="/test" element={<WorkspaceDetail />} />
+          <Route path="/" element={<LandingPage/>} />
         </Routes>
       </div>
     </Router>
   );
 }
-
 
 export default App;

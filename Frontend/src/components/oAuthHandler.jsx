@@ -30,16 +30,14 @@ const OAuthRedirectHandler = () => {
         sessionStorage.setItem('user', JSON.stringify(user));
 
         console.log('✅ Tokens and user info stored in sessionStorage.');
-
-        // Redirect to your main app or dashboard
         navigate('/dashboard');
       } catch (err) {
         console.error('❌ Failed to parse user data:', err);
-        navigate('/auth');
+        navigate('/login');
       }
     } else {
       console.warn('❗ Missing one or more query parameters.');
-      navigate('/auth');
+      navigate('/login');
     }
   }, [navigate]);
 

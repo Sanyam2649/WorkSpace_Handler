@@ -9,7 +9,7 @@ const ProtectedRoute = ({ children }) => {
   useEffect(() => {
     if (!isAuthenticated()) {
       saveLastPage(location.pathname + location.search);
-      navigate('/auth');
+      navigate('/login');
     }
   }, [navigate, location]);
 

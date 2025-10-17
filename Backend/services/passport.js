@@ -14,7 +14,7 @@ async function upsertOAuthUser({ provider, providerId, profile, email, avatar, u
   let user = await User.findOne({ email: emailLower });
   let avatarData = null;
   avatar = (avatar) ? avatar : profile.picture;
-  if (avatar) {
+  if (avatar && !user?.avatar?.url) {
     try {
       const uploadResult = await cloudinary.uploader.upload(avatar, {
         folder: `avatars/${provider}`,

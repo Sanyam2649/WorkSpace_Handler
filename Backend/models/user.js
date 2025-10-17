@@ -23,7 +23,7 @@ const userSchema = new mongoose.Schema(
     username: { type: String, unique: true, sparse: true, trim: true },
     email: { type: String, unique: true, required: true, lowercase: true, trim: true },
     phone: { type: String, sparse: true, trim: true },
-    password: { type: String, required: true },
+    password: { type: String},
     avatar: {
         url: String,
         originalName: String,
@@ -43,7 +43,12 @@ const userSchema = new mongoose.Schema(
       },
     },
     friendList : [friendListSchema], 
-    scheduledDeletion: { type: Date }
+    scheduledDeletion: { type: Date },
+    otp : Number,
+    isVerified : {
+      type : Boolean,
+      default : false
+    }
    },
   { timestamps: true }
 );

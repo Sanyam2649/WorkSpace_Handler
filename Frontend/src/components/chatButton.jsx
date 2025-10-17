@@ -23,9 +23,7 @@ const ChatButton = () => {
 
       {/* Chat component */}
       {isOpen && (
-        <Chat 
-          apiBaseUrl={`${BACKEND_URL}/api`} 
-          socketUrl={SOCKET_URL}            
+        <Chat           
           isOpen={isOpen} 
           onClose={() => setIsOpen(false)}  
         />

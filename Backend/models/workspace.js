@@ -4,9 +4,16 @@ const membershipSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     roles: { type: [String], enum: ["Admin", "Editor", "Viewer"], default: ["Viewer"] },
+    isRequested : {type : Boolean , default : false},
+    isActive : {type : Boolean, default : false},
   },
   { _id: false }
 );
+
+const trackActivitySchema = new mongoose.Schema({
+  activity : String,
+  createdAt : {type : Date}
+})
 
 const workspaceSchema = new mongoose.Schema(
   {
@@ -21,6 +28,7 @@ const workspaceSchema = new mongoose.Schema(
       enum: ["admin-only", "admin-editor", "all"],
       default: "admin-editor",
     },
+    trackActivity : [trackActivitySchema]
   },
   { timestamps: true }
 );

@@ -14,6 +14,7 @@ const authMiddleware = require("../middleware/userAuth");
 const { setupPassport } = require("../services/passport");
 const workspace = require("../models/workspace");
 const ChatRoom = require("../models/chatModel");
+const sendMail = require("../services/nodeMailer");
 
 setupPassport();
 const router = express.Router();
@@ -23,6 +24,18 @@ const upload = multer({ storage: multer.memoryStorage() });
 function generateTokens(user) {
   return user.generateAuthToken();
 }
+
+function generateOTP() {
+  return Math.floor(1000 + Math.random() * 9000);
+}
+
+async function generateUniqueOTP() {
+  const otp = generateOTP();
+  const existingUser = await User.findOne({ otp });
+  if (existingUser) return generateUniqueOTP(); // regenerate if exists
+  return otp;
+}
+
 
 // ---------------------- Refresh Token ----------------------
 router.post("/refresh", async (req, res) => {
@@ -41,32 +54,126 @@ router.post("/refresh", async (req, res) => {
   }
 });
 
-// ---------------------- Signup ----------------------
 router.post("/signup", async (req, res) => {
   try {
-    const { firstName, lastName, username, email, phone, password } = req.body;
-
+    const { firstName, lastName, username, email, phone} = req.body;
     const existingUser = await User.findOne({
       $or: [{ email }, { username }, { phone }],
     });
     if (existingUser)
-      return res.status(400).json({ message: "User with provided email, username, or phone already exists" });
+      return res.status(400).json({
+        message: "User with provided email, username, or phone already exists",
+      });
 
+    const otp = await generateUniqueOTP();
     const newUser = new User({
       firstName,
       lastName,
       username,
       email,
       phone,
-      password,
+      otp,
       providers: [{ provider: "local", providerId: uuidv4() }],
     });
 
     await newUser.save();
-    const tokens = generateTokens(newUser);
-    res.status(201).json({ message: "User created successfully", user: newUser, ...tokens });
+
+    // ✅ Send OTP via email
+    await sendMail(
+      email,
+      "Verify your Workspace Account",
+      `Your verification code is ${otp}`,
+      `<div style="font-family:sans-serif;line-height:1.6;">
+         <h2>Welcome to WorkSpaceHandler, ${firstName}!</h2>
+         <p>Use the following OTP to verify your email address:</p>
+         <h3 style="color:#6C63FF;letter-spacing:3px;">${otp}</h3>
+         <p>This code is valid for 10 minutes.</p>
+       </div>`
+    );
+
+    res.status(201).json({
+      message: "User created successfully. OTP sent to email.",
+      user: newUser,
+    });
   } catch (err) {
+    console.error("❌ Signup Error:", err);
     res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+router.post("/unverify-signup", async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
+    }
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    // Optionally check if user.isVerified === false to restrict deletion
+    await User.deleteOne({ email });
+
+    return res.status(200).json({ message: "Unverified user deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting unverified user:", error);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+router.post("/verify-otp", async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      return res.status(400).json({ message: "Email and OTP are required." });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+    
+    if (user.otp !== Number(otp)) {
+      return res.status(400).json({ 
+        success : false,
+        message: "Invalid OTP." });
+    }
+    
+    user.isVerified = true;
+    user.otp = null;
+    await user.save();
+
+    res.status(200).json({ 
+      success : true,
+      message: "✅ OTP verified successfully."
+    });
+  } catch (error) {
+    console.error("❌ OTP Verification Error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
+router.post("/set-password", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required." ,  success : false});
+    }
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found.", success: false });
+    }
+    if (!user.isVerified) {
+      return res.status(403).json({ message: "User not verified. Please verify your email first." , success : false });
+    }
+    
+    user.password = password;
+    await user.save();
+
+    res.status(200).json({ message: "Password set successfully.", success : true });
+  } catch (error) {
+    console.error("❌ Set Password Error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 
@@ -110,7 +217,7 @@ router.patch("/profile", upload.single("avatar"), authMiddleware, async (req, re
     // --- Update preferences ---
     if (req.body.preferences) {
       try {
-        const prefs = JSON.parse(req.body.preferences);
+        const prefs = req.body.preferences;
         user.preferences = { ...user.preferences, ...prefs };
       } catch {
         if (typeof req.body["preferences.language"] === "string")
@@ -220,7 +327,7 @@ router.get(
 
       const { password, providers, scheduledDeletion, ...userData } = req.user.toObject();
 
-      const redirectTo = `${process.env.FRONTEND_URL}/login?accessToken=${tokens.accessToken}&refreshToken=${tokens.refreshToken}&user=${encodeURIComponent(
+      const redirectTo = `${process.env.FRONTEND_URL}/auth-login?accessToken=${tokens.accessToken}&refreshToken=${tokens.refreshToken}&user=${encodeURIComponent(
         JSON.stringify(userData)
       )}`;
 
@@ -248,7 +355,7 @@ router.get(
 
       const { password, providers, scheduledDeletion, ...userData } = req.user.toObject();
 
-      const redirectTo = `${process.env.FRONTEND_URL}/login?accessToken=${tokens.accessToken}&refreshToken=${tokens.refreshToken}&user=${encodeURIComponent(
+      const redirectTo = `${process.env.FRONTEND_URL}/auth-login?accessToken=${tokens.accessToken}&refreshToken=${tokens.refreshToken}&user=${encodeURIComponent(
         JSON.stringify(userData)
       )}`;
 

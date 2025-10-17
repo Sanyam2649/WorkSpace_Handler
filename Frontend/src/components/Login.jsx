@@ -1,13 +1,76 @@
-import { useState } from 'react';
-import { login, setAuth, getAndClearLastPage } from '../api';
+import { useState ,useEffect } from 'react';
+import { login, setAuth, getAndClearLastPage, isAuthenticated } from '../api';
+import { Eye, EyeOff , ChevronLeft , ChevronRight , UserRound} from "lucide-react";
+import { useNavigate, useSearchParams } from 'react-router-dom';
+const testimonials = [
+  {
+    image: "https://res.cloudinary.com/dhahajyth/image/upload/v1760682295/freepik__the-style-is-modern-and-it-is-a-detailed-illustrat__61814_s0g4kc.png",
+    quote: "Collaborate smarter, deliver faster: cloud synergy at your fingertips.",
+  },
+  {
+    image: "https://res.cloudinary.com/dhahajyth/image/upload/v1760682295/freepik__realtime-data-insights-a-network-of-connections-vi__61815_dsy0tx.png",
+    quote: "Transform decisions with live data—your team’s success is one dashboard away.",
+  },
+  {
+    image: "https://res.cloudinary.com/dhahajyth/image/upload/v1760682293/freepik__the-style-is-modern-and-it-is-a-detailed-illustrat__61816_ombm3a.png",
+    quote: "Innovation thrives when every project connects ideas and people seamlessly.",
+  },
+  {
+    image: "https://res.cloudinary.com/dhahajyth/image/upload/v1760682296/freepik__i-want-images-related-to-workspace-team-collaborat__61813_pzcjlz.png",
+    quote: "Workspace collaboration reimagined—where teamwork makes vision reality.",
+  }
+];
 
-const Login = ({ onSwitchToSignup, onLoginSuccess }) => {
+
+const Login = ({ onLoginSuccess }) => {
+  
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [formData, setFormData] = useState({
     identifier: '',
     password: ''
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [currentIndex, setCurrentIndex] = useState(0);
+  
+    useEffect(() => {
+      if (isAuthenticated()) {
+        const lastPage = getAndClearLastPage();
+        navigate(lastPage);
+        return;
+      }
+  
+      const accessToken = searchParams.get('accessToken');
+      const refreshToken = searchParams.get('refreshToken');
+      const user = searchParams.get('user');
+  
+      if (accessToken && refreshToken && user) {
+        try {
+          const userData = JSON.parse(decodeURIComponent(user));
+          setAuth(accessToken, refreshToken, userData);
+          window.history.replaceState({}, document.title, window.location.pathname);
+          const lastPage = getAndClearLastPage();
+          navigate(lastPage);
+        } catch (error) {
+          console.error('Error parsing OAuth data:', error);
+        }
+      }
+    }, [searchParams, navigate]);
+  
+  
+    const prevTestimonial = () => {
+    setCurrentIndex((prevIndex) =>
+      prevIndex === 0 ? testimonials.length - 1 : prevIndex - 1
+    );
+  };
+
+  const nextTestimonial = () => {
+    setCurrentIndex((prevIndex) =>
+      prevIndex === testimonials.length - 1 ? 0 : prevIndex + 1
+    );
+  };
 
   const handleChange = (e) => {
     setFormData({
@@ -21,12 +84,9 @@ const Login = ({ onSwitchToSignup, onLoginSuccess }) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-
     try {
       const response = await login(formData.identifier, formData.password);
       setAuth(response.accessToken, response.refreshToken, response.user);
-      
-      // Get the last page and redirect
       const lastPage = getAndClearLastPage();
       onLoginSuccess(lastPage);
     } catch (err) {
@@ -37,109 +97,147 @@ const Login = ({ onSwitchToSignup, onLoginSuccess }) => {
   };
 
   const handleGoogleLogin = () => {
-    // Redirect to Google OAuth
     window.location.href = `${import.meta.env.VITE_BACKEND_URL}/api/user/google`;
   };
-
-  const handleGitHubLogin = () => {
-    // Redirect to GitHub OAuth
+  
+    const handleGitHubLogin = () => {
     window.location.href = `${import.meta.env.VITE_BACKEND_URL}/api/user/github`;
   };
+  
+  const handleSignup = () => {
+    navigate('/signup');
+  }
+
+
+  const testimonial = testimonials[currentIndex];
 
   return (
-    <>
-      <div className="max-w-lg size-full bg-white p-8 rounded-lg shadow-lg">
-        <div className="auth-header">
-          <h2 className='text-2xl font-bold mb-2 text-center text-gray-800'>Welcome Back</h2>
-          <p>Sign in to your account</p>
-        </div>
-
-        {error && (
-          <div className="error-message">
-            {error}
+    <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="flex size-full  flex flex-row-reverse bg-white shadow-lg rounded-xl overflow-hidden">
+        <div className="relative w-[54%] bg-[#F3F4FF] flex flex-col items-center justify-center">
+      <img
+        src={testimonial.image}
+        alt="Smart Locker"
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ filter: 'brightness(0.85)' }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-white/0 to-blue-50/60" />
+          <div className="absolute bottom-12 left-1/2 -translate-x-1/2 w-[95%]">
+            <div className="bg-none rounded-2xl shadow-lg p-7 flex flex-col gap-4">
+              <p className="text-xl font-semibold leading-snug text-blue-800">
+                {testimonial.quote}
+              </p>
+            </div>
           </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="auth-form">
-          <div className="form-group">
-            <label htmlFor="identifier">Email, Username, or Phone</label>
-            <input
-              type="text"
-              id="identifier"
-              name="identifier"
-              value={formData.identifier}
-              onChange={handleChange}
-              required
-              placeholder="Enter your email, username, or phone"
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              placeholder="Enter your password"
-            />
-          </div>
-
-          <button 
-            type="submit" 
-                        className={`w-full py-3 rounded text-white font-semibold transition ${
-              loading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
-            }`}
-            disabled={loading}
-          >
-            {loading ? 'Signing In...' : 'Sign In'}
-          </button>
-        </form>
-
-        <div className="divider">
-          <span>or</span>
-        </div>
-
-      <div className="space-y-3">
+          {/* Navigation Buttons */}
           <button
-            onClick={handleGoogleLogin}
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition disabled:opacity-60"
+            onClick={prevTestimonial}
+            className="absolute left-4 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow hover:bg-gray-100"
+            aria-label="Previous Testimonial"
           >
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-            </svg>
-            Continue with Google
+            <ChevronLeft size={24} />
           </button>
-
           <button
-            onClick={handleGitHubLogin}
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-3 py-2 bg-gray-800 text-white rounded hover:bg-gray-900 transition disabled:opacity-60"
+            onClick={nextTestimonial}
+            className="absolute right-4 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow hover:bg-gray-100"
+            aria-label="Next Testimonial"
           >
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-            </svg>
-            Continue with GitHub
+            <ChevronRight size={24} />
           </button>
         </div>
-          <p className='mt-6 text-center text-gray-600"'>
-            Don't have an account?{' '}
-            <button 
-              type="button" 
-              className="text-blue-600 hover:underline focus:outline-none"
-              onClick={onSwitchToSignup}
+        <div className="w-[46%] flex items-center justify-center px-12 py-12 bg-white">
+          <div className="w-full max-w-md flex flex-col">
+            {/* Logo */}
+            <div className="mb-8 flex flex-col items-center gap-3">
+              <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center">
+                {/* Screenshot logo */}
+                <UserRound width="34" height="34" viewBox="0 0 24 24" fill="none"/>
+              </div>
+              <h2 className="text-2xl font-bold text-center text-gray-900 mt-2">Log in to your account</h2>
+            </div>
+            {/* Form */}
+            {error && <div className="mb-4 text-red-500 text-center">{error}</div>}
+            <form onSubmit={handleSubmit} className="flex flex-col gap-5 mb-3">
+              <input
+                type="text"
+                name="identifier"
+                placeholder="Enter your email or Phone"
+                value={formData.identifier}
+                onChange={handleChange}
+                autoComplete="username"
+                required
+                className="rounded-lg border border-gray-200 px-4 py-3 bg-gray-50 focus:border-blue-400 outline-none"
+              />
+              <div className="relative rounded-lg border border-gray-200">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  placeholder="Enter your password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  autoComplete="current-password"
+                  required
+                  className="px-4 py-3 pr-12 bg-gray-50 focus:border-blue-400 outline-none"
+                />
+                <span
+                  className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
+                  onClick={() => setShowPassword(prev => !prev)}
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-sm mt-1 mb-1">
+                <label className="flex gap-2 items-center">
+                  <input type="checkbox" className="accent-blue-600" />
+                  <span className="text-gray-500">Remember me</span>
+                </label>
+                <a href="#" className="text-blue-500 hover:underline font-medium">Forgot password</a>
+              </div>
+              <button
+                type="submit"
+                className={`bg-blue-600 hover:bg-blue-700 active:bg-blue-800 transition text-white text-base font-semibold py-3 rounded-lg shadow w-full mt-2 ${
+                  loading ? 'bg-blue-300 cursor-not-allowed' : ''
+                }`}
+                disabled={loading}
+              >
+                {loading ? 'Signing In...' : 'Sign in'}
+              </button>
+            </form>
+            {/* Google login */}
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              className={
+                "w-full flex items-center justify-center gap-3 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg shadow hover:bg-gray-50 transition mt-2 text-base"
+              }
+              disabled={loading}
             >
-              Sign up
+<svg width="24px" height="24px" viewBox="-3 0 262 262" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid" fill="#000000" stroke="#000000" stroke-width="0.00262" transform="matrix(1, 0, 0, 1, 0, 0)"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path d="M255.878 133.451c0-10.734-.871-18.567-2.756-26.69H130.55v48.448h71.947c-1.45 12.04-9.283 30.172-26.69 42.356l-.244 1.622 38.755 30.023 2.685.268c24.659-22.774 38.875-56.282 38.875-96.027" fill="#4285F4"></path><path d="M130.55 261.1c35.248 0 64.839-11.605 86.453-31.622l-41.196-31.913c-11.024 7.688-25.82 13.055-45.257 13.055-34.523 0-63.824-22.773-74.269-54.25l-1.531.13-40.298 31.187-.527 1.465C35.393 231.798 79.49 261.1 130.55 261.1" fill="#34A853"></path><path d="M56.281 156.37c-2.756-8.123-4.351-16.827-4.351-25.82 0-8.994 1.595-17.697 4.206-25.82l-.073-1.73L15.26 71.312l-1.335.635C5.077 89.644 0 109.517 0 130.55s5.077 40.905 13.925 58.602l42.356-32.782" fill="#FBBC05"></path><path d="M130.55 50.479c24.514 0 41.05 10.589 50.479 19.438l36.844-35.974C195.245 12.91 165.798 0 130.55 0 79.49 0 35.393 29.301 13.925 71.947l42.211 32.783c10.59-31.477 39.891-54.251 74.414-54.251" fill="#EB4335"></path></g></svg>
+              Sign in with Google
             </button>
-          </p>
+            
+               <button
+              type="button"
+              onClick={handleGitHubLogin}
+              className={
+                "w-full flex items-center justify-center gap-3 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg shadow hover:bg-gray-50 transition mt-2 text-base"
+              }
+              disabled={loading}
+            >
+           <svg width="24px" height="24px" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path fill="#000000" fill-rule="evenodd" d="M8 1C4.133 1 1 4.13 1 7.993c0 3.09 2.006 5.71 4.787 6.635.35.064.478-.152.478-.337 0-.166-.006-.606-.01-1.19-1.947.423-2.357-.937-2.357-.937-.319-.808-.778-1.023-.778-1.023-.635-.434.048-.425.048-.425.703.05 1.073.72 1.073.72.624 1.07 1.638.76 2.037.582.063-.452.244-.76.444-.935-1.554-.176-3.188-.776-3.188-3.456 0-.763.273-1.388.72-1.876-.072-.177-.312-.888.07-1.85 0 0 .586-.189 1.924.716A6.711 6.711 0 018 4.381c.595.003 1.194.08 1.753.236 1.336-.905 1.923-.717 1.923-.717.382.963.142 1.674.07 1.85.448.49.72 1.114.72 1.877 0 2.686-1.638 3.278-3.197 3.45.251.216.475.643.475 1.296 0 .934-.009 1.688-.009 1.918 0 .187.127.404.482.336A6.996 6.996 0 0015 7.993 6.997 6.997 0 008 1z" clip-rule="evenodd"></path></g></svg>
+              Sign in with Github
+            </button>
+            <div className="text-center mt-5 text-gray-600 text-base">
+              Don't have an account?{' '}
+              <button type="button" className="text-blue-600 hover:underline" onClick={handleSignup}>
+                Sign up
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
-    </>
+    </div>
   );
 };
 
