@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node -e \"process.env.ROLLUP_IGNORE_NATIVE='true'\" && vite build",
+    "build": "node -e \"process.env.ROLLUP_IGNORE_NATIVE='true'\" &&  npm rebuild lightningcss --force && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -33,6 +33,6 @@
     "eslint-plugin-react-refresh": "^0.4.22",
     "globals": "^16.4.0",
     "rollup": "4.22.4",
-    "vite": "^7.1.7"
+    "vite": "^7.1.10"
   }
 }
