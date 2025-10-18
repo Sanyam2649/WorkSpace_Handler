@@ -44,7 +44,8 @@ import {
   Users2,
   Mail,
   Shield,
-  Briefcase
+  Briefcase,
+  ArrowLeft
 } from 'lucide-react';
 
 export default function Workspace() {
@@ -128,11 +129,9 @@ export default function Workspace() {
     setDocumentModalMode('view');
   };
 
-
   const handleChatSelect = (chat) => {
     setActiveChat(chat);
   };
-
 
   const handleChatConnection = (connected) => {
     setIsChatConnected(connected);
@@ -141,7 +140,7 @@ export default function Workspace() {
   const handleRemoveMember = async (memberId) => {
     try {
       await dispatch(removeWorkspaceMemberThunk({ workspaceId: id, memberId })).unwrap();
-      refreshWorkspaceData(); // Refresh after removal
+      refreshWorkspaceData();
     } catch (error) {
       console.error('Error removing member:', error);
     }
@@ -154,7 +153,7 @@ export default function Workspace() {
         memberId,
         role
       })).unwrap();
-      refreshWorkspaceData(); // Refresh after role update
+      refreshWorkspaceData();
     } catch (error) {
       console.error('Error updating member role:', error);
     }
@@ -246,46 +245,42 @@ export default function Workspace() {
 
       case 'documents':
         return (
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h1 className="text-2xl font-bold text-base-content">Documents</h1>
-                <p className="text-base-content/60 mt-1">Manage your workspace documents</p>
+                <h1 className="text-xl md:text-2xl font-bold text-base-content">Documents</h1>
+                <p className="text-base-content/60 mt-1 text-sm md:text-base">Manage your workspace documents</p>
               </div>
 
               {isAdmin && (
-                <div className="flex gap-3 px-10 py-2">
-                  {/* New Document Button with Tooltip */}
-                  <div className="relative inline-block group">
+                <div className="flex gap-2 md:gap-3">
+                  {/* New Document Button */}
+                  <div className="relative group">
                     <button
-                      className="btn btn-primary btn-sm sm:btn-md"
+                      className="btn btn-primary btn-sm md:btn-md rounded-lg md:rounded-xl"
                       onClick={() => setShowCreateDocumentForm(true)}
                     >
-                      <Plus size={18} />
+                      <Plus size={16} md:size={18} />
+                      <span className="hidden sm:inline">New</span>
                     </button>
-
-                    {/* Tooltip */}
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-3 p-6 bg-base-100 border-2 border-primary/20 text-base-content text-sm font-medium rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 whitespace-nowrap pointer-events-none z-50 group-hover:delay-500">
-                      Create New Document
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1.5 w-4 h-4 bg-base-100 border-r-2 border-b-2 border-primary/20 rotate-45"></div>
+                    <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-base-100 border border-base-300 text-base-content text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap pointer-events-none z-50 hidden sm:block">
+                      Create Document
                     </div>
                   </div>
 
-                  {/* Refresh Button with Tooltip */}
-                  <div className="relative inline-block group">
+                  {/* Refresh Button */}
+                  <div className="relative group">
                     <button
                       onClick={refreshWorkspaceData}
-                      className="btn btn-outline btn-sm sm:btn-md"
+                      className="btn btn-outline btn-sm md:btn-md rounded-lg md:rounded-xl"
                       disabled={workspaceLoading || documentsLoading}
                     >
-                      <RefreshCw size={16} className={workspaceLoading ? 'animate-spin' : ''} />
+                      <RefreshCw size={14} md:size={16} className={workspaceLoading ? 'animate-spin' : ''} />
+                      <span className="hidden sm:inline">Refresh</span>
                     </button>
-
-                    {/* Tooltip */}
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-3 px-4 py-2 bg-base-100 border-2 border-base-300 text-base-content text-sm font-medium rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 whitespace-nowrap pointer-events-none z-50 group-hover:delay-500">
-                      Refresh Workspace Data
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1.5 w-4 h-4 bg-base-100 border-r-2 border-b-2 border-base-300 rotate-45"></div>
+                    <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-base-100 border border-base-300 text-base-content text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap pointer-events-none z-50 hidden sm:block">
+                      Refresh Data
                     </div>
                   </div>
                 </div>
@@ -293,32 +288,32 @@ export default function Workspace() {
             </div>
 
             {/* Search Bar */}
-            <div className="card bg-gradient-to-br from-base-200 to-base-300 border-2 border-base-300 p-5 shadow-lg  transition-all duration-300 rounded-2xl group">
-              <form onSubmit={handleSearchSubmit} className="flex gap-4">
+            <div className="card bg-base-200 border border-base-300 p-4 md:p-5 rounded-xl md:rounded-2xl">
+              <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row gap-3">
                 <div className="flex-1 relative">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-base-content/60 transition-all duration-300 group-hover:text-primary group-focus-within:text-primary" size={20} />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-base-content/60" size={18} />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={handleSearchChange}
-                    className="input w-full pl-12 pr-6 py-4 bg-base-100 border-2 border-base-300 text-base-content placeholder-base-content/60 rounded-xl focus:border-primary focus:ring-4 focus:ring-primary/15 transition-all duration-300  focus:shadow-2xl text-lg"
-                    placeholder="Search documents by title or content..."
+                    className="input w-full pl-10 pr-4 py-3 bg-base-100 border border-base-300 text-base-content placeholder-base-content/60 rounded-lg md:rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/15 text-sm md:text-base"
+                    placeholder="Search documents..."
                   />
                 </div>
                 <button
                   type="submit"
-                  className="btn bg-gradient-to-r from-primary to-secondary  text-primary-content border-2 border-primary hover:border-primary-focus shadow-lg transition-all duration-300 transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl px-8"
+                  className="btn btn-primary py-3 px-4 md:px-8 rounded-lg md:rounded-xl min-w-[100px]"
                   disabled={searchLoading}
                 >
                   {searchLoading ? (
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       <span className="loading loading-spinner loading-sm"></span>
-                      <span>Searching...</span>
+                      <span className="text-sm">Searching</span>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-3">
-                      <Search size={18} className="transition-transform duration-300" />
-                      <span className="font-semibold">Search</span>
+                    <div className="flex items-center gap-2">
+                      <Search size={16} />
+                      <span className="text-sm">Search</span>
                     </div>
                   )}
                 </button>
@@ -328,28 +323,25 @@ export default function Workspace() {
             {/* Documents Grid */}
             {(searchQuery.length > 0 && canSearch) ? (
               searchLoading ? (
-                <div className="card bg-gradient-to-br from-base-200 to-base-300 border-2 border-base-300 p-12 text-center rounded-2xl shadow-lg">
-                  <div className="loading loading-spinner loading-lg text-primary mb-4"></div>
-                  <h3 className="text-lg font-semibold text-base-content mb-2">Searching Documents</h3>
-                  <p className="text-base-content/60">Looking for documents matching your search...</p>
+                <div className="card bg-base-200 border border-base-300 p-8 text-center rounded-xl">
+                  <div className="loading loading-spinner loading-lg text-primary mb-3"></div>
+                  <h3 className="text-lg font-semibold text-base-content mb-2">Searching</h3>
+                  <p className="text-base-content/60 text-sm">Looking for documents...</p>
                 </div>
               ) : searchResults.length === 0 ? (
-                <div className="card bg-gradient-to-br from-base-200 to-base-300 border-2 border-base-300 p-12 text-center rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
-                  <Files size={64} className="text-base-content/30 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-base-content mb-3">No Results Found</h3>
-                  <p className="text-base-content/60 mb-2">No documents match</p>
-                  <p className="text-primary font-medium">"{searchQuery}"</p>
-                  <div className="mt-6">
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      className="btn btn-outline btn-sm border-2 hover:border-primary"
-                    >
-                      Clear Search
-                    </button>
-                  </div>
+                <div className="card bg-base-200 border border-base-300 p-8 text-center rounded-xl">
+                  <Files size={48} className="text-base-content/30 mx-auto mb-3" />
+                  <h3 className="text-lg font-semibold text-base-content mb-2">No Results</h3>
+                  <p className="text-base-content/60 text-sm mb-4">No documents match "{searchQuery}"</p>
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="btn btn-outline btn-sm"
+                  >
+                    Clear Search
+                  </button>
                 </div>
               ) : (
-                <div className="grid gap-4 max-h-96 overflow-y-auto p-1">
+                <div className="grid gap-3 max-h-96 overflow-y-auto">
                   {searchResults.map((doc, index) => (
                     <DocumentCard
                       key={doc._id}
@@ -363,36 +355,32 @@ export default function Workspace() {
                 </div>
               )
             ) : documentsLoading ? (
-              <div className="card bg-gradient-to-br from-base-200 to-base-300 border-2 border-base-300 p-12 text-center rounded-2xl shadow-lg">
-                <div className="loading loading-spinner loading-lg text-primary mb-4"></div>
-                <h3 className="text-lg font-semibold text-base-content mb-2">Loading Documents</h3>
-                <p className="text-base-content/60">Fetching your workspace documents...</p>
+              <div className="card bg-base-200 border border-base-300 p-8 text-center rounded-xl">
+                <div className="loading loading-spinner loading-lg text-primary mb-3"></div>
+                <h3 className="text-lg font-semibold text-base-content mb-2">Loading</h3>
+                <p className="text-base-content/60 text-sm">Fetching documents...</p>
               </div>
             ) : documents.length === 0 ? (
-              <div className="card bg-gradient-to-br from-base-200 to-base-300 border-2 border-base-300 p-16 text-center rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
-                <div className="w-20 h-20 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                  <Files size={40} className="text-primary" />
+              <div className="card bg-base-200 border border-base-300 p-8 text-center rounded-xl">
+                <div className="w-16 h-16 bg-primary/20 rounded-xl flex items-center justify-center mx-auto mb-4">
+                  <Files size={32} className="text-primary" />
                 </div>
-                <h3 className="text-2xl font-bold text-base-content mb-3">No Documents Yet</h3>
-                <p className="text-base-content/60 text-lg mb-8 max-w-md mx-auto">
-                  Start organizing your work by creating your first document
+                <h3 className="text-xl font-bold text-base-content mb-2">No Documents</h3>
+                <p className="text-base-content/60 text-sm mb-6">
+                  Start by creating your first document
                 </p>
-              <div className="relative inline-block group">
-                    <button
-                      className="bg-gradient-to-r from-primary to-secondary text-primary-content px-6 py-3 rounded-xl hover:shadow-lg transition-all duration-300 inline-flex items-center gap-2 font-semibold"
-                      onClick={() => setShowCreateDocumentForm(true)}
-                    >
-                      <Plus size={20} className="mr-2" />
-                      Create First Document
-                    </button>
-                    <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 px-4 py-2 bg-base-100 border-2 border-primary/20 text-base-content text-sm font-semibold rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 whitespace-nowrap pointer-events-none z-50">
-                      Start your documentation journey
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1 w-3 h-3 bg-base-100 border-r-2 border-b-2 border-primary/20 rotate-45"></div>
-                    </div>
-                  </div>
+                {isAdmin && (
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => setShowCreateDocumentForm(true)}
+                  >
+                    <Plus size={18} className="mr-2" />
+                    Create Document
+                  </button>
+                )}
               </div>
             ) : (
-              <div className="grid gap-4 max-h-[600px] overflow-hidden p-10">
+              <div className="grid gap-3 max-h-[500px] overflow-y-auto">
                 {documents.map((doc, index) => (
                   <DocumentCard
                     key={doc._id}
@@ -411,164 +399,136 @@ export default function Workspace() {
       case 'chat':
         return (
           <div className="h-full flex flex-col">
-            case 'chat':
-            return (
-            <div className="h-full flex flex-col">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h1 className="text-2xl font-bold text-base-content">
-                    {activeChat?.type === 'document' ? 'Document Chat' : 'Workspace Chat'}
-                  </h1>
-                  <p className="text-base-content/60 mt-1">
-                    {activeChat?.type === 'document'
-                      ? 'Collaborate on this document in real-time'
-                      : 'Communicate with your team members'
-                    }
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  {/* Connection Status */}
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${isChatConnected ? 'bg-success' : 'bg-error'}`}></div>
-                    <span className="text-sm text-base-content/60">
-                      {isChatConnected ? 'Connected' : 'Connecting...'}
-                    </span>
-                  </div>
-
-                  {/* View Toggle */}
-                  <div className="tabs tabs-boxed bg-base-200 border border-base-300 p-1 rounded-xl">
-                    <button
-                      className={`tab tab-sm ${!isComponent ? 'tab-active' : ''}`}
-                      onClick={() => setIsComponent(false)}
-                    >
-                      Full Chat
-                    </button>
-                    <button
-                      className={`tab tab-sm ${isComponent ? 'tab-active' : ''}`}
-                      onClick={() => setIsComponent(true)}
-                    >
-                      Compact
-                    </button>
-                  </div>
-                </div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 md:mb-6">
+              <div>
+                <h1 className="text-xl md:text-2xl font-bold text-base-content">
+                  {activeChat?.type === 'document' ? 'Document Chat' : 'Workspace Chat'}
+                </h1>
+                <p className="text-base-content/60 mt-1 text-sm md:text-base">
+                  {activeChat?.type === 'document'
+                    ? 'Collaborate on this document'
+                    : 'Communicate with your team'
+                  }
+                </p>
               </div>
 
-              {/* Enhanced Chat Component */}
-              <div className="flex-1 border-2 border-base-300 rounded-2xl overflow-hidden bg-gradient-to-br from-base-100 to-base-200 shadow-lg">
-                <Chat
-                  isOpen={true}
-                  onClose={() => {
-                    // Optional: Add logic if you want to close chat and return to another view
-                    // setCurrentView('workspace');
-                  }}
-                  workspaceId={activeChat?.type === 'workspace' ? id : undefined}
-                  documentId={activeChat?.type === 'document' ? activeChat.roomId : undefined}
-                  chatType={activeChat?.type || 'workspace'}
-                  onChatSelect={handleChatSelect}
-                  onConnectionChange={handleChatConnection}
-                  key={`chat-${activeChat?.type}-${activeChat?.roomId}`} // Force re-render on chat change
-                />
-              </div>
-
-              {/* Quick Stats Footer */}
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="stat bg-base-200 rounded-2xl border border-base-300">
-                  <div className="stat-figure text-primary">
-                    <Users size={20} />
-                  </div>
-                  <div className="stat-title">Active Members</div>
-                  <div className="stat-value text-lg">{members.filter(m => m.isActive).length}</div>
+              <div className="flex items-center gap-3">
+                {/* Connection Status */}
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${isChatConnected ? 'bg-success' : 'bg-error'}`}></div>
+                  <span className="text-xs text-base-content/60">
+                    {isChatConnected ? 'Connected' : 'Connecting...'}
+                  </span>
                 </div>
 
-                <div className="stat bg-base-200 rounded-2xl border border-base-300">
-                  <div className="stat-figure text-success">
-                    <FileText size={20} />
-                  </div>
-                  <div className="stat-title">Document Chats</div>
-                  <div className="stat-value text-lg">{documents?.length || 0}</div>
-                </div>
-
-                <div className="stat bg-base-200 rounded-2xl border border-base-300">
-                  <div className="stat-figure text-info">
-                    <MessageCircle size={20} />
-                  </div>
-                  <div className="stat-title">Connection</div>
-                  <div className="stat-value text-lg">
-                    {isChatConnected ? 'Live' : 'Offline'}
-                  </div>
+                {/* View Toggle */}
+                <div className="tabs tabs-boxed bg-base-200 border border-base-300 p-1 rounded-lg">
+                  <button
+                    className={`tab tab-xs ${!isComponent ? 'tab-active' : ''}`}
+                    onClick={() => setIsComponent(false)}
+                  >
+                    Full
+                  </button>
+                  <button
+                    className={`tab tab-xs ${isComponent ? 'tab-active' : ''}`}
+                    onClick={() => setIsComponent(true)}
+                  >
+                    Compact
+                  </button>
                 </div>
               </div>
             </div>
-            );
 
-            <Chat
-              isOpen={true}
-              onClose={() => {is }}
-              workspaceId={activeChat?.type === 'workspace' ? id : undefined}
-              documentId={activeChat?.type === 'document' ? activeChat.roomId : undefined}
-              chatType={activeChat?.type || 'workspace'}
-              onChatSelect={handleChatSelect} // ADDED: Callback for chat selection
-              onConnectionChange={handleChatConnection} // ADDED: Callback for connection status
-              key={`chat-${activeChat?.type}-${activeChat?.roomId}`} // ADDED: Force re-render
-            />
+            {/* Chat Component */}
+            <div className="flex-1 border border-base-300 rounded-xl md:rounded-2xl overflow-hidden bg-base-100">
+              <Chat
+                isOpen={true}
+                onClose={() => {}}
+                workspaceId={activeChat?.type === 'workspace' ? id : undefined}
+                documentId={activeChat?.type === 'document' ? activeChat.roomId : undefined}
+                chatType={activeChat?.type || 'workspace'}
+                onChatSelect={handleChatSelect}
+                onConnectionChange={handleChatConnection}
+                key={`chat-${activeChat?.type}-${activeChat?.roomId}`}
+              />
+            </div>
+
+            {/* Quick Stats */}
+            <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-4">
+              <div className="stat bg-base-200 rounded-lg md:rounded-2xl border border-base-300 p-3">
+                <div className="stat-figure text-primary">
+                  <Users size={16} />
+                </div>
+                <div className="stat-title text-xs">Active</div>
+                <div className="stat-value text-sm">{members.filter(m => m.isActive).length}</div>
+              </div>
+
+              <div className="stat bg-base-200 rounded-lg md:rounded-2xl border border-base-300 p-3">
+                <div className="stat-figure text-success">
+                  <FileText size={16} />
+                </div>
+                <div className="stat-title text-xs">Documents</div>
+                <div className="stat-value text-sm">{documents?.length || 0}</div>
+              </div>
+
+              <div className="stat bg-base-200 rounded-lg md:rounded-2xl border border-base-300 p-3 col-span-2 md:col-span-1">
+                <div className="stat-figure text-info">
+                  <MessageCircle size={16} />
+                </div>
+                <div className="stat-title text-xs">Status</div>
+                <div className="stat-value text-sm">
+                  {isChatConnected ? 'Live' : 'Offline'}
+                </div>
+              </div>
+            </div>
           </div>
         );
 
       case 'members':
         return (
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h1 className="text-2xl font-bold text-base-content">Team Members</h1>
-                <p className="text-base-content/60 mt-1">Manage workspace collaborators</p>
+                <h1 className="text-xl md:text-2xl font-bold text-base-content">Team Members</h1>
+                <p className="text-base-content/60 mt-1 text-sm md:text-base">Manage workspace collaborators</p>
               </div>
 
               {isAdmin && (
                 <div className="relative group">
                   <button
-                    className="btn  text-success-content border-0 hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+                    className="btn btn-success btn-sm md:btn-md rounded-lg md:rounded-xl"
                     onClick={() => setShowAddMemberForm(true)}
                   >
-                    <Plus size={18} className="mr-2 bg-accent" />
+                    <Plus size={16} md:size={18} className="mr-1" />
+                    <span className="text-sm">Add Member</span>
                   </button>
-                  <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 px-3 py-2 bg-base-100 border-2 border-success/20 text-base-content text-xs font-semibold rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap pointer-events-none z-50">
-                    Invite new team member
-                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1 w-2 h-2 bg-base-100 border-r-2 border-b-2 border-success/20 rotate-45"></div>
-                  </div>
                 </div>
               )}
             </div>
 
             {/* Members List */}
             {members.length === 0 ? (
-              <div className="card bg-gradient-to-br from-base-200 to-base-300 border-2 border-base-300 p-16 text-center rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
-                <div className="w-20 h-20 bg-gradient-to-br from-success/20 to-emerald-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                  <Users size={40} className="text-success" />
+              <div className="card bg-base-200 border border-base-300 p-8 text-center rounded-xl">
+                <div className="w-16 h-16 bg-success/20 rounded-xl flex items-center justify-center mx-auto mb-4">
+                  <Users size={32} className="text-success" />
                 </div>
-                <h3 className="text-2xl font-bold text-base-content mb-3">No Team Members Yet</h3>
-                <p className="text-base-content/60 text-lg mb-8 max-w-md mx-auto">
-                  Start building your team by inviting collaborators to this workspace
+                <h3 className="text-xl font-bold text-base-content mb-2">No Team Members</h3>
+                <p className="text-base-content/60 text-sm mb-6">
+                  Start building your team
                 </p>
                 {isAdmin && (
-                  <div className="relative inline-block group">
-                    <button
-                      className="btn btn-success btn-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
-                      onClick={() => setShowAddMemberForm(true)}
-                    >
-                      <Plus size={20} className="mr-2" />
-                      Add First Member
-                    </button>
-                    <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 px-4 py-2 bg-base-100 border-2 border-success/20 text-base-content text-sm font-semibold rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 whitespace-nowrap pointer-events-none z-50">
-                      Build your dream team
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1 w-3 h-3 bg-base-100 border-r-2 border-b-2 border-success/20 rotate-45"></div>
-                    </div>
-                  </div>
+                  <button
+                    className="btn btn-success"
+                    onClick={() => setShowAddMemberForm(true)}
+                  >
+                    <Plus size={18} className="mr-2" />
+                    Add Member
+                  </button>
                 )}
               </div>
             ) : (
-              <div className="grid gap-4">
+              <div className="grid gap-3">
                 {members.map((m, index) => (
                   <MemberCard
                     key={m.user._id}
@@ -602,7 +562,7 @@ export default function Workspace() {
       {/* Mobile Sidebar Overlay */}
       {mobileSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden animate-in fade-in duration-300"
           onClick={() => setMobileSidebarOpen(false)}
         />
       )}
@@ -613,18 +573,18 @@ export default function Workspace() {
         bg-base-200 border-r border-base-300 
         transition-all duration-300 ease-in-out
         flex flex-col
-        ${sidebarCollapsed ? 'w-16' : 'w-64'}
+        ${sidebarCollapsed ? 'w-14' : 'w-64'}
         ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         {/* Sidebar Header */}
-        <div className="flex items-center justify-between p-4 border-b border-base-300">
+        <div className="flex items-center justify-between p-3 md:p-4 border-b border-base-300">
           {!sidebarCollapsed && currentWorkspace && (
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center flex-shrink-0">
-                <LayoutDashboard className="text-primary-content" size={18} />
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-6 h-6 md:w-8 md:h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center flex-shrink-0">
+                <LayoutDashboard className="text-primary-content" size={14} md:size={18} />
               </div>
               <div className="min-w-0">
-                <p className="font-semibold text-base-content truncate text-sm">
+                <p className="font-semibold text-base-content truncate text-xs md:text-sm">
                   {currentWorkspace.name}
                 </p>
                 <p className="text-xs text-base-content/60 truncate">
@@ -635,14 +595,14 @@ export default function Workspace() {
           )}
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="btn btn-ghost btn-square btn-sm flex-shrink-0"
+            className="btn btn-ghost btn-square btn-xs md:btn-sm flex-shrink-0"
           >
-            {sidebarCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+            {sidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
           </button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-2 space-y-1">
+        <nav className="flex-1 p-1 md:p-2 space-y-1">
           {navigationItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentView === item.id;
@@ -655,7 +615,7 @@ export default function Workspace() {
                   setMobileSidebarOpen(false);
                 }}
                 className={`
-                  w-full flex items-center gap-3 p-3 rounded-lg 
+                  w-full flex items-center gap-2 md:gap-3 p-2 md:p-3 rounded-lg 
                   transition-all duration-200 group relative
                   ${isActive
                     ? 'bg-primary text-primary-content shadow-lg'
@@ -663,12 +623,12 @@ export default function Workspace() {
                   }
                 `}
               >
-                <Icon size={20} className="flex-shrink-0" />
+                <Icon size={18} md:size={20} className="flex-shrink-0" />
                 {!sidebarCollapsed && (
-                  <span className="font-medium truncate">{item.label}</span>
+                  <span className="font-medium truncate text-sm md:text-base">{item.label}</span>
                 )}
                 {sidebarCollapsed && (
-                  <div className="absolute left-full ml-2 px-2 py-1 bg-base-100 text-base-content text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity shadow-lg whitespace-nowrap z-50">
+                  <div className="absolute left-full ml-2 px-2 py-1 bg-base-100 text-base-content text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity shadow-lg whitespace-nowrap z-50">
                     {item.label}
                   </div>
                 )}
@@ -685,21 +645,21 @@ export default function Workspace() {
           showMobileMenu={true}
         />
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 overflow-y-auto">
           {workspaceLoading && currentView === 'workspace' ? (
-            <div className="flex items-center justify-center h-64">
+            <div className="flex items-center justify-center h-48 md:h-64">
               <div className="text-center">
                 <div className="loading loading-spinner loading-lg text-primary"></div>
-                <p className="mt-4 text-base-content/60">Loading workspace...</p>
+                <p className="mt-3 md:mt-4 text-base-content/60 text-sm md:text-base">Loading workspace...</p>
               </div>
             </div>
           ) : workspaceError ? (
             <div className="alert alert-error">
-              <div>
-                <span>{workspaceError}</span>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <span className="text-sm">{workspaceError}</span>
                 <button
                   onClick={refreshWorkspaceData}
-                  className="btn btn-sm btn-outline ml-4"
+                  className="btn btn-sm btn-outline"
                 >
                   Retry
                 </button>
@@ -708,8 +668,8 @@ export default function Workspace() {
           ) : currentWorkspace || currentView !== 'workspace' ? (
             renderContent()
           ) : (
-            <div className="card bg-base-200 p-12 text-center">
-              <p className="text-base-content text-lg mb-4">Workspace not found</p>
+            <div className="card bg-base-200 p-6 md:p-12 text-center rounded-xl">
+              <p className="text-base-content text-base md:text-lg mb-4">Workspace not found</p>
               <button
                 onClick={refreshWorkspaceData}
                 className="btn btn-primary"
@@ -723,23 +683,50 @@ export default function Workspace() {
         <Footer />
       </div>
 
+      {/* Mobile Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-base-200 border-t border-base-300 p-2 flex justify-around lg:hidden z-30">
+        {navigationItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = currentView === item.id;
+
+          return (
+            <button
+              key={item.id}
+              onClick={() => setCurrentView(item.id)}
+              className={`
+                flex flex-col items-center p-2 rounded-lg transition-all duration-200
+                ${isActive
+                  ? 'text-primary bg-primary/10'
+                  : 'text-base-content/60'
+                }
+              `}
+            >
+              <Icon size={20} />
+              <span className="text-xs mt-1">{item.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Modals */}
-      <Modal
+      <MobileModal
         isOpen={showCreateDocumentForm}
         onClose={() => setShowCreateDocumentForm(false)}
-        title="Create New Document"
+        title="Create Document"
+        position="bottom"
       >
         <DocumentForm
           onClose={() => setShowCreateDocumentForm(false)}
           onSubmit={handleCreateDocument}
         />
-      </Modal>
+      </MobileModal>
 
-      <Modal
+      <MobileModal
         isOpen={showDocumentModal && selectedDocumentId}
         onClose={closeDocumentModal}
         title={documentModalMode === 'edit' ? 'Edit Document' : 'View Document'}
-        size="xl"
+        position="bottom"
+        size="full"
       >
         {documentModalMode === 'edit' ? (
           <DocumentForm
@@ -748,20 +735,23 @@ export default function Workspace() {
             onSubmit={(data, files) => handleUpdateDocument(selectedDocumentId, data, files)}
           />
         ) : (
-          <Document
-            documentId={selectedDocumentId}
-            onClose={closeDocumentModal}
-            onUpdate={(updatedDoc) => {
-              dispatch(updateDocumentInList(updatedDoc));
-            }}
-          />
+          <div className="h-full flex flex-col">
+            <Document
+              documentId={selectedDocumentId}
+              onClose={closeDocumentModal}
+              onUpdate={(updatedDoc) => {
+                dispatch(updateDocumentInList(updatedDoc));
+              }}
+            />
+          </div>
         )}
-      </Modal>
+      </MobileModal>
 
-      <Modal
+      <MobileModal
         isOpen={showAddMemberForm}
         onClose={() => setShowAddMemberForm(false)}
         title="Add Team Member"
+        position="bottom"
       >
         <AddMemberForm
           workspaceId={id}
@@ -770,71 +760,62 @@ export default function Workspace() {
             refreshWorkspaceData();
           }}
         />
-      </Modal>
+      </MobileModal>
     </div>
   );
 }
 
 const DocumentCard = ({ doc, onView, onEdit, canEdit }) => {
-  // Get the latest version info
   const latestVersion = doc.versions?.[doc.versions.length - 1];
   const collaboratorCount = doc.permissions?.filter(p => p.role !== 'Owner')?.length || 0;
-
   const hasFiles = doc.files && doc.files.length > 0;
   const fileCount = doc.files?.length || 0;
 
   return (
-    <div
-      className="group bg-base-100 border-2 border-base-300 hover:border-primary/40 rounded-xl p-5 transition-all duration-300 hover:shadow-lg"
-    >
+    <div className="group bg-base-100 border border-base-300 hover:border-primary/40 rounded-lg md:rounded-xl p-3 md:p-4 transition-all duration-200">
       <div className="flex items-start justify-between">
         {/* Main Content */}
         <div className="flex-1 min-w-0">
-          {/* Header */}
-          <div className="flex items-start gap-4 mb-3">
-            <div className="w-14 h-14 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
-              <FileText className="text-primary-content" size={22} />
+          <div className="flex items-start gap-2 md:gap-3 mb-2">
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+              <FileText className="text-primary-content" size={14} md:size={16} />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-bold text-base-content mb-2 leading-tight">
+              <h3 className="text-base md:text-lg font-bold text-base-content mb-1 leading-tight">
                 {doc.title}
               </h3>
 
               {/* Content Preview */}
               {doc.content && (
-                <p className="text-base-content/70 text-sm mb-3 leading-relaxed">
-                  {doc.content.substring(0, 120)}
-                  {doc.content.length > 120 && '...'}
+                <p className="text-base-content/70 text-xs md:text-sm mb-2 leading-relaxed line-clamp-2">
+                  {doc.content.substring(0, 80)}
+                  {doc.content.length > 80 && '...'}
                 </p>
               )}
 
               {/* Metadata */}
-              <div className="flex items-center gap-4 text-xs text-base-content/60">
-                {/* Updated Date */}
-                <div className="flex items-center gap-1.5">
-                  <Calendar size={12} />
-                  <span>Updated {new Date(latestVersion?.createdAt || doc.updatedAt).toLocaleDateString()}</span>
+              <div className="flex flex-wrap gap-2 text-xs text-base-content/60">
+                <div className="flex items-center gap-1">
+                  <Calendar size={10} />
+                  <span>{new Date(latestVersion?.createdAt || doc.updatedAt).toLocaleDateString()}</span>
                 </div>
 
-                {/* Version */}
-                <div className="flex items-center gap-1.5">
-                  <History size={12} />
+                <div className="flex items-center gap-1">
+                  <History size={10} />
                   <span>v{doc.versions?.length || 1}</span>
                 </div>
 
-                {/* Files */}
                 {hasFiles && (
-                  <div className="flex items-center gap-1.5">
-                    <Paperclip size={12} />
-                    <span>{fileCount} file{fileCount !== 1 ? 's' : ''}</span>
+                  <div className="flex items-center gap-1">
+                    <Paperclip size={10} />
+                    <span>{fileCount}</span>
                   </div>
                 )}
 
-                {/* Collaborators */}
                 {collaboratorCount > 0 && (
-                  <div className="flex items-center gap-1.5">
-                    <Users2 size={12} />
-                    <span>{collaboratorCount} collaborator{collaboratorCount !== 1 ? 's' : ''}</span>
+                  <div className="flex items-center gap-1">
+                    <Users2 size={10} />
+                    <span>{collaboratorCount}</span>
                   </div>
                 )}
               </div>
@@ -843,33 +824,21 @@ const DocumentCard = ({ doc, onView, onEdit, canEdit }) => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-2 ml-4 flex-shrink-0">
-          {/* View Button */}
-          <div className="relative group/action">
-            <button
-              className="btn btn-ghost btn-square btn-sm text-base-content/60 hover:text-info hover:bg-info/10 border border-transparent hover:border-info/20 rounded-lg transition-all duration-200"
-              onClick={onView}
-            >
-              <Eye size={16} />
-            </button>
-            <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-base-100 border border-base-300 text-base-content text-xs font-medium rounded-md shadow-lg opacity-0 group-hover/action:opacity-100 transition-all duration-200 whitespace-nowrap pointer-events-none z-10">
-              View
-            </div>
-          </div>
+        <div className="flex gap-1 ml-2 flex-shrink-0">
+          <button
+            className="btn btn-ghost btn-square btn-xs text-base-content/60 hover:text-info"
+            onClick={onView}
+          >
+            <Eye size={12} />
+          </button>
 
-          {/* Edit Button */}
           {canEdit && (
-            <div className="relative group/action">
-              <button
-                className="btn btn-ghost btn-square btn-sm text-base-content/60 hover:text-primary hover:bg-primary/10 border border-transparent hover:border-primary/20 rounded-lg transition-all duration-200"
-                onClick={onEdit}
-              >
-                <Edit3 size={16} />
-              </button>
-              <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-base-100 border border-base-300 text-base-content text-xs font-medium rounded-md shadow-lg opacity-0 group-hover/action:opacity-100 transition-all duration-200 whitespace-nowrap pointer-events-none z-10">
-                Edit
-              </div>
-            </div>
+            <button
+              className="btn btn-ghost btn-square btn-xs text-base-content/60 hover:text-primary"
+              onClick={onEdit}
+            >
+              <Edit3 size={12} />
+            </button>
           )}
         </div>
       </div>
@@ -881,115 +850,77 @@ const MemberCard = ({ member, onRemove, onUpdateRole, canManage, currentUserId, 
   const isCurrentUser = member.user._id === currentUserId;
 
   return (
-    <div
-      className="card bg-gradient-to-br from-base-100 to-base-200 border-2 border-base-300 hover:border-primary/30 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] rounded-2xl animate-in fade-in slide-in-from-bottom-3"
-      style={{ animationDelay: `${index * 100}ms` }}
-    >
-      <div className="card-body p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4 flex-1 min-w-0">
-            {/* Avatar */}
-            <div className="relative">
-              <div className="w-14 h-14 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center text-primary-content font-semibold text-lg shadow-lg">
-                {member.user.avatar?.url ? (
-                  <img
-                    src={member.user.avatar.url}
-                    alt={member.user.username}
-                    className="w-full h-full rounded-xl object-cover"
-                  />
-                ) : (
-                  <>
-                    {member.user.firstName?.[0]}{member.user.lastName?.[0]}
-                  </>
-                )}
-              </div>
-              {/* Status Indicator */}
-              <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-base-100 ${member.isActive
-                  ? 'bg-success'
-                  : member.isRequested
-                    ? 'bg-warning'
-                    : 'bg-error'
-                }`}></div>
+    <div className="card bg-base-100 border border-base-300 rounded-lg md:rounded-xl p-3 md:p-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+          {/* Avatar */}
+          <div className="relative">
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-primary to-secondary rounded-lg md:rounded-xl flex items-center justify-center text-primary-content font-semibold text-sm">
+              {member.user.avatar?.url ? (
+                <img
+                  src={member.user.avatar.url}
+                  alt={member.user.username}
+                  className="w-full h-full rounded-lg md:rounded-xl object-cover"
+                />
+              ) : (
+                <>
+                  {member.user.firstName?.[0]}{member.user.lastName?.[0]}
+                </>
+              )}
             </div>
-
-            {/* Member Info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="text-lg font-bold text-base-content truncate">
-                  {member.user.firstName} {member.user.lastName}
-                </h3>
-              </div>
-
-              <div className="flex items-center gap-3 text-sm text-base-content/60 mb-2">
-                <div className="flex items-center gap-1">
-                  <Mail size={14} />
-                  <span className="truncate">{member.user.email}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Users size={14} />
-                  <span>@{member.user.username}</span>
-                </div>
-              </div>
-
-              {/* Status and Role */}
-              <div className="flex items-center gap-2">
-                <span className={`badge badge-sm${member.roles[0] === 'Admin'
-                    ? 'badge-secondary'
-                    : member.roles[0] === 'Editor'
-                      ? 'badge-primary'
-                      : 'badge-outline'
-                  }`}>
-                  {member.roles[0]}
-                </span>
-              </div>
-            </div>
+            <div className={`absolute -bottom-1 -right-1 w-2 h-2 md:w-3 md:h-3 rounded-full border border-base-100 ${
+              member.isActive ? 'bg-success' : member.isRequested ? 'bg-warning' : 'bg-error'
+            }`}></div>
           </div>
 
-          {/* Action Buttons */}
-          {canManage && !isCurrentUser && (
-            <div className="flex gap-2 ml-4 flex-shrink-0">
-              {/* Role Dropdown */}
-              <div className="relative group">
-                <select
-                  value={member.roles[0]}
-                  onChange={(e) => onUpdateRole(member.user._id, e.target.value)}
-                  className="select select-bordered select-sm border-2 border-primary/20 hover:border-primary focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 rounded-xl bg-base-100"
-                >
-                  <option>Viewer</option>
-                  <option>Editor</option>
-                  <option>Admin</option>
-                </select>
-                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-base-100 border border-base-300 text-base-content text-xs font-medium rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap pointer-events-none z-10">
-                  Change Role
-                </div>
-              </div>
-
-              {/* Remove Button */}
-              <div className="relative group">
-                <button
-                  onClick={() => {
-                    if (window.confirm(`Are you sure you want to remove ${member.user.firstName} from this workspace?`)) {
-                      onRemove(member.user._id);
-                    }
-                  }}
-                  className="btn btn-ghost btn-square btn-sm text-error hover:bg-error/10 border-2 border-error/20 hover:border-error transition-all duration-200 rounded-xl"
-                >
-                  <Users size={16} />
-                </button>
-                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-base-100 border border-base-300 text-base-content text-xs font-medium rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap pointer-events-none z-10">
-                  Remove Member
-                </div>
-              </div>
+          {/* Member Info */}
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm md:text-base font-bold text-base-content truncate">
+              {member.user.firstName} {member.user.lastName}
+            </h3>
+            <p className="text-xs text-base-content/60 truncate">{member.user.email}</p>
+            <div className="flex items-center gap-1 mt-1">
+              <span className={`badge badge-xs ${
+                member.roles[0] === 'Admin' ? 'badge-secondary' :
+                member.roles[0] === 'Editor' ? 'badge-primary' : 'badge-outline'
+              }`}>
+                {member.roles[0]}
+              </span>
             </div>
-          )}
+          </div>
         </div>
+
+        {/* Action Buttons */}
+        {canManage && !isCurrentUser && (
+          <div className="flex gap-1 ml-2 flex-shrink-0">
+            <select
+              value={member.roles[0]}
+              onChange={(e) => onUpdateRole(member.user._id, e.target.value)}
+              className="select select-bordered select-xs border border-base-300 rounded-lg text-xs"
+            >
+              <option>Viewer</option>
+              <option>Editor</option>
+              <option>Admin</option>
+            </select>
+            <button
+              onClick={() => {
+                if (window.confirm(`Remove ${member.user.firstName}?`)) {
+                  onRemove(member.user._id);
+                }
+              }}
+              className="btn btn-ghost btn-square btn-xs text-error"
+            >
+              <Users size={12} />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-// Enhanced Modal Component
-const Modal = ({ isOpen, onClose, children, title, size = 'md', showCloseButton = true }) => {
+// Enhanced Mobile Modal Component with Slide Animation
+const MobileModal = ({ isOpen, onClose, children, title, position = 'bottom', size = 'md' }) => {
   if (!isOpen) return null;
 
   const sizeClasses = {
@@ -997,60 +928,69 @@ const Modal = ({ isOpen, onClose, children, title, size = 'md', showCloseButton 
     md: 'max-w-2xl',
     lg: 'max-w-4xl',
     xl: 'max-w-6xl',
-    full: 'max-w-full mx-4'
+    full: 'max-w-full'
+  };
+
+  const positionClasses = {
+    bottom: 'items-end justify-center',
+    center: 'items-center justify-center',
+    top: 'items-start justify-center'
+  };
+
+  const animationClasses = {
+    bottom: isOpen ? 'animate-in slide-in-from-bottom duration-300' : 'animate-out slide-out-to-bottom duration-300',
+    center: isOpen ? 'animate-in zoom-in duration-300' : 'animate-out zoom-out duration-300',
+    top: isOpen ? 'animate-in slide-in-from-top duration-300' : 'animate-out slide-out-to-top duration-300'
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+    <div className={`fixed inset-0 z-50 flex ${positionClasses[position]} p-2 md:p-4 ${animationClasses[position]}`}>
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-neutral/60 backdrop-blur-sm transition-opacity duration-300"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300"
         onClick={onClose}
       />
 
       {/* Modal Container */}
       <div
-        className={`relative bg-base-100 rounded-3xl shadow-2xl border-2 border-base-300 w-full ${sizeClasses[size]} max-h-[94vh] overflow-hidden animate-in zoom-in duration-300 scale-95`}
+        className={`relative bg-base-100 rounded-xl md:rounded-2xl shadow-2xl border border-base-300 w-full ${sizeClasses[size]} max-h-[90vh] overflow-hidden ${animationClasses[position]}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        {title && (
-          <div className="flex items-center justify-between p-8 border-b-2 border-base-300 bg-gradient-to-r from-base-200 to-base-300">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center">
-                <FileText className="text-primary-content" size={20} />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-base-content leading-tight">
-                  {title}
-                </h2>
-                <p className="text-base-content/60 text-sm mt-1">
-                  {size === 'sm' ? 'Quick action' : size === 'md' ? 'Standard view' : 'Detailed view'}
-                </p>
-              </div>
-            </div>
-
-            {showCloseButton && (
-              <button
-                onClick={onClose}
-                className="btn btn-ghost btn-circle btn-sm hover:bg-error/20 hover:text-error border-2 border-transparent hover:border-error/30 transition-all duration-200"
-                aria-label="Close modal"
-              >
-                <X size={20} className="text-base-content/70" />
-              </button>
-            )}
+        <div className="flex items-center justify-between p-4 border-b border-base-300 bg-base-200 sticky top-0">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onClose}
+              className="btn btn-ghost btn-square btn-sm md:hidden"
+            >
+              <ArrowLeft size={18} />
+            </button>
+            <h2 className="text-lg md:text-xl font-bold text-base-content">
+              {title}
+            </h2>
           </div>
-        )}
+
+          <button
+            onClick={onClose}
+            className="btn btn-ghost btn-square btn-sm hidden md:flex"
+          >
+            <X size={18} />
+          </button>
+        </div>
 
         {/* Content Area */}
-        <div className="overflow-y-auto max-h-[calc(94vh-120px)]">
-          <div className="p-8 space-y-6">
+        <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
+          <div className="p-4 md:p-6">
             {children}
           </div>
         </div>
 
-        {/* Gradient Border Effect */}
-        <div className="absolute inset-0 rounded-3xl pointer-events-none border-2 border-transparent bg-gradient-to-br from-primary/5 to-secondary/5 -z-10" />
+        {/* Mobile Handle */}
+        {position === 'bottom' && (
+          <div className="md:hidden absolute top-2 left-1/2 transform -translate-x-1/2">
+            <div className="w-12 h-1 bg-base-300 rounded-full"></div>
+          </div>
+        )}
       </div>
     </div>
   );

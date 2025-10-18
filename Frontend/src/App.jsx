@@ -1,7 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useDispatch} from 'react-redux';
-import Auth from './pages/Auth';
 import Dashboard from './pages/Dashboard';
 import Workspace from './pages/Workspace';
 import WorkspacesPage from './pages/workspaces';
@@ -34,8 +33,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignupFlow />} />
           <Route path="/forgot-password" element={<ForgotPasswordFlow/>}/>
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/auth-login" element={<OAuthRedirectHandler />} />
+]          <Route path="/auth-login" element={<OAuthRedirectHandler />} />
           
           {/* Protected Routes */}
           <Route path="/dashboard" element={

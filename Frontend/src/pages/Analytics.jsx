@@ -190,7 +190,6 @@ export default function Analytics() {
     timeRange,
     lastUpdated,
     refreshInProgress,
-    sectionRefreshInProgress, // Add this to your slice to track individual sections
   } = useSelector((state) => state.analytics);
 
   const [autoRefresh, setAutoRefresh] = useState(false);
@@ -269,55 +268,64 @@ export default function Analytics() {
         <div className="mb-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="flex-1">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="p-3 bg-gradient-to-br from-primary to-secondary rounded-2xl">
-                  <BarChart3 className="w-6 h-6 text-primary-content" />
-                </div>
-                <div>
-                  <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                    Analytics Dashboard
-                  </h1>
-                  <p className="text-base-content/70 mt-2 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4" />
-                    Gain insights into your workspace activity and performance
-                  </p>
-                  {lastUpdated && (
-                    <span className="text-sm text-base-content/50 ml-2 flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      Updated {new Date(lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  )}
+             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
+  {/* Icon Container */}
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="p-2 sm:p-3 bg-gradient-to-br from-primary to-secondary rounded-xl sm:rounded-2xl flex-shrink-0">
+                    <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-primary-content" />
+                  </div>
+
+                  {/* Text Content */}
+                  <div className="flex-1 min-w-0">
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent leading-tight">
+                      Analytics Dashboard
+                    </h1>
+
+                    {/* Description */}
+                    <div className="mt-1 sm:mt-2 flex flex-col xs:flex-row xs:items-center gap-1 xs:gap-2 text-sm sm:text-base text-base-content/70">
+                      <div className="flex items-center gap-1 sm:gap-2">
+                        <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                        <span className="text-xs sm:text-sm">Gain insights into your workspace activity and performance</span>
+                      </div>
+
+                      {/* Last Updated */}
+                      {lastUpdated && (
+                        <div className="flex items-center gap-1 text-xs sm:text-sm text-base-content/50">
+                          <Clock className="w-3 h-3 flex-shrink-0" />
+                          <span>Updated {new Date(lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
             
             {/* Controls */}
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col xs:flex-row flex-wrap gap-2 sm:gap-3">
               {/* Auto Refresh Toggle */}
               <Tooltip content={autoRefresh ? "Disable auto refresh" : "Enable auto refresh every 30s"}>
                 <button
                   onClick={() => setAutoRefresh(!autoRefresh)}
-                  className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 transition-all duration-200 ${
-                    autoRefresh
+                  className={`flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl border-2 transition-all duration-200 flex-1 xs:flex-none min-w-0 ${autoRefresh
                       ? "bg-success/20 border-success/30 text-success hover:bg-success/30"
                       : "bg-base-100 border-base-300 text-base-content/70 hover:border-base-400"
-                  }`}
+                    }`}
                 >
-                  <div className={`w-2 h-2 rounded-full ${
-                    autoRefresh ? "bg-success animate-pulse" : "bg-base-content/40"
-                  }`} />
-                  <span className="font-medium">Auto Refresh</span>
+                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${autoRefresh ? "bg-success animate-pulse" : "bg-base-content/40"
+                    }`} />
+                  <span className="font-medium text-sm sm:text-base truncate">Auto Refresh</span>
                 </button>
               </Tooltip>
 
               {/* Time Range Selector */}
-              <div className="relative">
+              <div className="relative flex-1 xs:flex-none min-w-0">
                 <Tooltip content="Select time range">
                   <select
                     value={timeRange}
                     onChange={(e) => handleTimeRangeChange(e.target.value)}
                     disabled={loading}
-                    className="appearance-none bg-base-100 border-2 border-base-300 rounded-xl px-4 py-3 pr-10 text-base-content focus:outline-none focus:border-primary disabled:opacity-50 font-medium cursor-pointer"
+                    className="w-full appearance-none bg-base-100 border-2 border-base-300 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 pr-8 sm:pr-10 text-base-content focus:outline-none focus:border-primary disabled:opacity-50 font-medium cursor-pointer text-sm sm:text-base"
                   >
                     {TIME_RANGE_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -326,8 +334,8 @@ export default function Analytics() {
                     ))}
                   </select>
                 </Tooltip>
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                  <TimeRangeIcon className="w-4 h-4 text-base-content/50" />
+                <div className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                  <TimeRangeIcon className="w-3 h-3 sm:w-4 sm:h-4 text-base-content/50" />
                 </div>
               </div>
 
@@ -336,36 +344,36 @@ export default function Analytics() {
                 <button
                   onClick={handleRefreshAll}
                   disabled={loading || refreshInProgress}
-                  className="px-4 py-3 bg-base-100 border-2 border-base-300 rounded-xl hover:border-primary/50 disabled:opacity-50 transition-all duration-200 flex items-center gap-2 font-medium"
+                  className="px-3 sm:px-4 py-2 sm:py-3 bg-base-100 border-2 border-base-300 rounded-lg sm:rounded-xl hover:border-primary/50 disabled:opacity-50 transition-all duration-200 flex items-center gap-2 font-medium flex-1 xs:flex-none min-w-0"
                 >
-                  <RefreshCw className={`w-4 h-4 ${refreshInProgress ? "animate-spin" : ""}`} />
-                  Refresh
+                  <RefreshCw className={`w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0 ${refreshInProgress ? "animate-spin" : ""}`} />
+                  <span className="text-sm sm:text-base">Refresh</span>
                 </button>
               </Tooltip>
 
               {/* Export Dropdown */}
-              <div className="relative group">
+              <div className="relative group flex-1 xs:flex-none">
                 <Tooltip content="Export analytics data">
-                  <button className="px-4 py-3 bg-gradient-to-r from-primary to-secondary text-primary-content rounded-xl hover:shadow-lg transition-all duration-200 flex items-center gap-2 font-medium">
-                    <DownloadCloud className="w-4 h-4" />
-                    Export
+                  <button className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-primary to-secondary text-primary-content rounded-lg sm:rounded-xl hover:shadow-lg transition-all duration-200 flex items-center gap-2 font-medium justify-center">
+                    <DownloadCloud className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                    <span className="text-sm sm:text-base">Export</span>
                   </button>
                 </Tooltip>
-                <div className="absolute top-full right-0 mt-2 w-48 bg-base-100 border-2 border-base-300 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                <div className="absolute top-full left-0 xs:left-auto xs:right-0 mt-2 w-full xs:w-48 bg-base-100 border-2 border-base-300 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
                   <button
                     onClick={() => handleExport("json")}
                     disabled={exporting}
-                    className="w-full px-4 py-3 text-left hover:bg-base-200 flex items-center gap-2 rounded-t-xl disabled:opacity-50"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 text-left hover:bg-base-200 flex items-center gap-2 rounded-t-xl disabled:opacity-50 text-sm sm:text-base"
                   >
-                    <Database className="w-4 h-4" />
+                    <Database className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                     JSON Format
                   </button>
                   <button
                     onClick={() => handleExport("csv")}
                     disabled={exporting}
-                    className="w-full px-4 py-3 text-left hover:bg-base-200 flex items-center gap-2 rounded-b-xl disabled:opacity-50"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 text-left hover:bg-base-200 flex items-center gap-2 rounded-b-xl disabled:opacity-50 text-sm sm:text-base"
                   >
-                    <FileDown className="w-4 h-4" />
+                    <FileDown className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                     CSV Format
                   </button>
                 </div>

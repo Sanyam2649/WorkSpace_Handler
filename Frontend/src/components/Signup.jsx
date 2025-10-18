@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { signup, verifyOtp, setPassword , rejectVerification} from "../api";
-import {useNavigate } from "react-router-dom";
-import { Eye, EyeOff , CircleArrowLeft,  X} from "lucide-react";
+import { signup, verifyOtp, setPassword, rejectVerification } from "../api";
+import { useNavigate } from "react-router-dom";
+import { Eye, EyeOff, CircleArrowLeft, X } from "lucide-react";
 
 const steps = [
   "Your details",
@@ -12,12 +12,13 @@ const steps = [
 
 function StepIndicator({ current }) {
   return (
-    <div className="flex items-center justify-center space-x-2 mt-6">
+    <div className="flex items-center justify-center space-x-2 mt-4 sm:mt-6">
       {steps.map((_, idx) => (
         <span
           key={idx}
-          className={`w-3 h-3 rounded-full transition-colors duration-300 ${idx === current ? "bg-indigo-600" : "bg-gray-300"
-            }`}
+          className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-colors duration-300 ${
+            idx === current ? "bg-indigo-600" : "bg-gray-300"
+          }`}
         />
       ))}
     </div>
@@ -28,20 +29,20 @@ export default function SignupFlow() {
   const [step, setStep] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [ showModal , setShowModal] =useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [showArrow, setShowArrow] = useState(false);
   const navigate = useNavigate();
-  // Responsive state
+
   const [fields, setFields] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     phone: "",
     username: "",
     otp: ["", "", "", ""],
     password: "",
+    confirmPassword: "",
   });
-  
-  console.log(fields);
 
   const [userEmail, setUserEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -64,24 +65,35 @@ export default function SignupFlow() {
         document.getElementById(`otp-${idx - 1}`).focus();
     }
   };
-  
+
   const handleBack = () => {
     setShowModal(true);
-  }
-const confirmRejection = async () => {
-  setLoading(true);
-  try {
-    const {email} = fields;
-    await rejectVerification({email});
-    setStep(0);
-    setShowArrow(false);
-    setShowModal(false);
-  } catch (error) {
-    setApiError(error.message || "Failed to reject verification. Please try again.");
-  }
-  setLoading(false);
-};
-  
+  };
+
+  const confirmRejection = async () => {
+    setLoading(true);
+    try {
+      const { email } = fields;
+      await rejectVerification({ email });
+      setStep(0);
+      setShowArrow(false);
+      setShowModal(false);
+      setFields({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        username: "",
+        otp: ["", "", "", ""],
+        password: "",
+        confirmPassword: "",
+      });
+    } catch (error) {
+      setApiError(error.message || "Failed to reject verification. Please try again.");
+    }
+    setLoading(false);
+  };
+
   // Validation
   const validateStep = () => {
     setApiError("");
@@ -95,9 +107,9 @@ const confirmRejection = async () => {
         return false;
       }
       
-      if(fields.phone.length !== 10)
-      {
+      if (fields.phone.length !== 10) {
         setApiError("Enter a valid Phone number");
+        return false;
       }
       return true;
     }
@@ -166,34 +178,34 @@ const confirmRejection = async () => {
     }
     setLoading(false);
   };
-  
- const handleNavigate = () => {
-  setLoading(true);
-  setTimeout(() => {
+
+  // FIXED: This function now properly navigates to login
+  const handleNavigate = () => {
     navigate('/login');
-  }, 500);
-};
+  };
 
   const handleNext = async () => {
     if (!validateStep()) return;
+    
     if (step === 0) await handleSignup();
     else if (step === 1) await handleVerifyOtp();
     else if (step === 2) await handleSetPassword();
-    else if (step === 3)  handleNavigate();
+    else if (step === 3) handleNavigate(); // This will now work properly
   };
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
-      <aside className="hidden md:flex w-full md:w-1/3 flex-col border-r bg-white p-10 relative">
+      {/* Sidebar - Hidden on mobile */}
+      <aside className="hidden md:flex w-full md:w-1/3 lg:w-2/5 flex-col border-r bg-white p-6 lg:p-10 relative">
         <nav className="flex-1 relative">
-
-          <ol className="relative z-10 space-y-10">
+          <ol className="relative z-10 space-y-8 lg:space-y-10">
             {steps.map((s, i) => (
               <li key={s} className="flex items-start gap-4">
-                {/* Checkpoint (centered on line) */}
+                {/* Checkpoint */}
                 <div
-                  className={`relative z-10 py-1 w-5 h-5 rounded-full flex items-center justify-center transition-all duration-300 ${step >= i ? "bg-indigo-500 scale-110 shadow-md" : "bg-gray-300"
-                    }`}
+                  className={`relative z-10 py-1 w-5 h-5 rounded-full flex items-center justify-center transition-all duration-300 ${
+                    step >= i ? "bg-indigo-500 scale-110 shadow-md" : "bg-gray-300"
+                  }`}
                 >
                   {step > i ? (
                     <span className="text-white text-xs font-bold">✓</span>
@@ -203,16 +215,17 @@ const confirmRejection = async () => {
                 </div>
 
                 {/* Step text */}
-                <div>
+                <div className="flex-1">
                   <div
-                    className={`${step === i
+                    className={`text-sm lg:text-base ${
+                      step === i
                         ? "text-indigo-600 font-semibold"
                         : "text-gray-400 font-medium"
-                      }`}
+                    }`}
                   >
                     {s}
                   </div>
-                  <div className="text-xs text-gray-400">
+                  <div className="text-xs text-gray-400 mt-1">
                     {i === 0 && "Please provide your details information."}
                     {i === 1 && "Verify codes delivered to your inbox."}
                     {i === 2 && "Choose a secure password."}
@@ -224,77 +237,93 @@ const confirmRejection = async () => {
           </ol>
         </nav>
       </aside>
-      <>
-      <main className="flex-1 md:w-2/3 flex flex-col items-center justify-center px-4 py-8">
-        <div className="w-full max-w-md bg-white rounded-2xl  text-center shadow p-6 sm:p-8">
-          {showArrow && (<CircleArrowLeft onClick={handleBack}/>)}
+
+      {/* Main Content */}
+      <main className="flex-1 w-full md:w-2/3 lg:w-3/5 flex flex-col items-center justify-center px-4 sm:px-6 py-6 sm:py-8">
+        <div className="w-full max-w-md bg-white rounded-2xl text-center shadow-sm sm:shadow p-4 sm:p-6 md:p-8">
+          {/* Back Arrow */}
+          {showArrow && (
+            <div className="flex justify-start mb-4">
+              <CircleArrowLeft 
+                onClick={handleBack}
+                className="cursor-pointer text-gray-600 hover:text-indigo-600 transition-colors"
+                size={24}
+              />
+            </div>
+          )}
+
           {/* Step Contents */}
           {step === 0 && (
             <>
-              <h2 className="text-2xl font-semibold mb-2 items-center justify-center">Your details</h2>
-              <p className="text-gray-500 mb-6">Welcome! Please set your information.</p>
-              <input
-                name="firstName"
-                type="text"
-                placeholder="firstName"
-                className="input w-full mt-3 text-lg px-4 py-3 rounded-lg bg-gray-100"
-                value={fields.firstName}
-                onChange={handleChange}
-              />
-              <input
-                name="lastName"
-                type="text"
-                placeholder="lastName"
-                className="input w-full mt-3 text-lg px-4 py-3 rounded-lg bg-gray-100"
-                value={fields.lastName}
-                onChange={handleChange}
-              />
-              <input
-                name="username"
-                type="text"
-                placeholder="Username"
-                className="input w-full mt-3 text-lg px-4 py-3 rounded-lg bg-gray-100"
-                value={fields.username}
-                onChange={handleChange}
-              />
-              <input
-                name="email"
-                type="email"
-                placeholder="Email"
-                className="input w-full mt-3 text-lg px-4 py-3 rounded-lg bg-gray-100"
-                value={fields.email}
-                onChange={handleChange}
-              />
-              <input
-                name="phone"
-                type="tel"
-                placeholder="Phone"
-                className="input w-full mt-3 text-lg px-4 py-3 rounded-lg bg-gray-100"
-                value={fields.phone}
-                onChange={handleChange}
-              />
+              <h2 className="text-xl sm:text-2xl font-semibold mb-2">Your details</h2>
+              <p className="text-gray-500 text-sm sm:text-base mb-4 sm:mb-6">
+                Welcome! Please set your information.
+              </p>
+              <div className="space-y-3 sm:space-y-4">
+                <input
+                  name="firstName"
+                  type="text"
+                  placeholder="First Name"
+                  className="w-full text-sm sm:text-base px-4 py-3 rounded-lg bg-gray-100 border border-transparent focus:border-indigo-400 focus:bg-white outline-none"
+                  value={fields.firstName}
+                  onChange={handleChange}
+                />
+                <input
+                  name="lastName"
+                  type="text"
+                  placeholder="Last Name"
+                  className="w-full text-sm sm:text-base px-4 py-3 rounded-lg bg-gray-100 border border-transparent focus:border-indigo-400 focus:bg-white outline-none"
+                  value={fields.lastName}
+                  onChange={handleChange}
+                />
+                <input
+                  name="username"
+                  type="text"
+                  placeholder="Username"
+                  className="w-full text-sm sm:text-base px-4 py-3 rounded-lg bg-gray-100 border border-transparent focus:border-indigo-400 focus:bg-white outline-none"
+                  value={fields.username}
+                  onChange={handleChange}
+                />
+                <input
+                  name="email"
+                  type="email"
+                  placeholder="Email"
+                  className="w-full text-sm sm:text-base px-4 py-3 rounded-lg bg-gray-100 border border-transparent focus:border-indigo-400 focus:bg-white outline-none"
+                  value={fields.email}
+                  onChange={handleChange}
+                />
+                <input
+                  name="phone"
+                  type="tel"
+                  placeholder="Phone"
+                  className="w-full text-sm sm:text-base px-4 py-3 rounded-lg bg-gray-100 border border-transparent focus:border-indigo-400 focus:bg-white outline-none"
+                  value={fields.phone}
+                  onChange={handleChange}
+                />
+              </div>
             </>
           )}
+
           {step === 1 && (
             <>
-              <h2 className="text-2xl font-semibold mb-2">Check your inbox</h2>
-              <p className="text-gray-500 mb-3">
+              <h2 className="text-xl sm:text-2xl font-semibold mb-2">Check your inbox</h2>
+              <p className="text-gray-500 text-sm sm:text-base mb-4">
                 We sent a verification code to {userEmail}.
               </p>
-              <div className="flex gap-3 justify-center mb-3">
+              <div className="flex gap-2 sm:gap-3 justify-center mb-4">
                 {fields.otp.map((v, idx) => (
                   <input
                     key={idx}
                     id={`otp-${idx}`}
                     type="text"
                     maxLength={1}
-                    className="w-12 h-14 text-2xl font-bold rounded-lg bg-gray-100 text-center border border-transparent focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                    className="w-10 h-12 sm:w-12 sm:h-14 text-lg sm:text-2xl font-bold rounded-lg bg-gray-100 text-center border border-transparent focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
                     value={fields.otp[idx]}
                     onChange={(e) => handleOtpChange(idx, e.target.value)}
                   />
                 ))}
               </div>
-              <div className="text-xs text-gray-400 mb-3">
+              <div className="text-xs text-gray-400">
                 Didn't receive the email?{" "}
                 <button type="button" className="text-indigo-500 underline">
                   Resend
@@ -302,91 +331,111 @@ const confirmRejection = async () => {
               </div>
             </>
           )}
+
           {step === 2 && (
             <>
-      <h2 className="text-2xl font-semibold mb-2">Set a password</h2>
-      <p className="text-gray-500 mb-6">
-        Please set a strong password for your account.
-      </p>
+              <h2 className="text-xl sm:text-2xl font-semibold mb-2">Set a password</h2>
+              <p className="text-gray-500 text-sm sm:text-base mb-4 sm:mb-6">
+                Please set a strong password for your account.
+              </p>
 
-      {/* Password input */}
-      <div className="relative w-full">
-        <input
-          name="password"
-          type={showPassword ? "text" : "password"} // dots when hidden
-          placeholder="Password"
-          className="input w-full text-xl px-4 py-3 rounded-lg bg-gray-100 pr-12"
-          value={fields.password}
-          onChange={handleChange}
-        />
-        <span
-          className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
-          onClick={() => setShowPassword(prev => !prev)}
-        >
-          {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-        </span>
-      </div>
+              <div className="space-y-3 sm:space-y-4">
+                {/* Password input */}
+                <div className="relative">
+                  <input
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Password"
+                    className="w-full text-sm sm:text-base px-4 py-3 rounded-lg bg-gray-100 border border-transparent focus:border-indigo-400 focus:bg-white outline-none pr-12"
+                    value={fields.password}
+                    onChange={handleChange}
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    onClick={() => setShowPassword(prev => !prev)}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
 
-      {/* Confirm password input */}
-      <div className="relative w-full mt-3">
-        <input
-          name="confirmPassword"
-          type={showConfirmPassword ? "text" : "password"} // dots when hidden
-          placeholder="Confirm password"
-          className="input w-full text-xl px-4 py-3 rounded-lg bg-gray-100 pr-12"
-          value={fields.confirmPassword}
-          onChange={handleChange}
-        />
-        <span
-          className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
-          onClick={() => setShowConfirmPassword(prev => !prev)}
-        >
-          {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-        </span>
-      </div>
+                {/* Confirm password input */}
+                <div className="relative">
+                  <input
+                    name="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Confirm password"
+                    className="w-full text-sm sm:text-base px-4 py-3 rounded-lg bg-gray-100 border border-transparent focus:border-indigo-400 focus:bg-white outline-none pr-12"
+                    value={fields.confirmPassword}
+                    onChange={handleChange}
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    onClick={() => setShowConfirmPassword(prev => !prev)}
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
 
-      <ul className="mt-2 text-xs text-gray-500 text-left list-inside list-disc">
-        <li>Must be at least 8 characters</li>
-        <li>Must contain one special character</li>
-      </ul>
-    </>
+              <ul className="mt-3 text-xs text-gray-500 text-left space-y-1">
+                <li>• Must be at least 8 characters</li>
+                <li>• Must contain one special character</li>
+              </ul>
+            </>
           )}
+
           {step === 3 && (
             <>
-              <h2 className="text-2xl font-semibold mb-2">Successfully</h2>
-              <p className="text-gray-500 mb-6">
+              <h2 className="text-xl sm:text-2xl font-semibold mb-2">Successfully</h2>
+              <p className="text-gray-500 text-sm sm:text-base mb-6">
                 Your account has been successfully created.<br />
                 Click below to log in magically.
               </p>
             </>
           )}
+
+          {/* Error Message */}
           {apiError && (
-            <div className="text-red-500 text-sm text-left mb-2 mt-2">{apiError}</div>
+            <div className="text-red-500 text-xs sm:text-sm text-left mb-3 mt-3 p-2 bg-red-50 rounded-lg">
+              {apiError}
+            </div>
           )}
+
+          {/* Continue Button */}
           <button
-            className={`mt-8 w-full py-3 bg-indigo-600 text-white text-lg font-medium rounded-lg ${loading && "opacity-60 cursor-not-allowed"
-              }`}
-            disabled={loading || step === 3}
+            className={`mt-6 w-full py-3 bg-indigo-600 text-white text-sm sm:text-base font-medium rounded-lg hover:bg-indigo-700 transition-colors ${
+              loading && "opacity-60 cursor-not-allowed"
+            }`}
+            disabled={loading}
             onClick={handleNext}
           >
-            {step === 0 && "Continue"}
-            {step === 1 && "Verify email"}
-            {step === 2 && "Reset password"}
-            {step === 3 && "Continue"}
+            {loading ? "Processing..." : 
+             step === 0 ? "Continue" :
+             step === 1 ? "Verify email" :
+             step === 2 ? "Set password" :
+             "Go to Login"}
           </button>
+
           <StepIndicator current={step} />
-          <div className="mt-3 text-center text-sm text-gray-400">
+
+          <div className="mt-4 text-center text-xs sm:text-sm text-gray-400">
             Already have an account?{" "}
-            <a href="/login" className="text-indigo-600 underline">Sign in</a>
+            <a href="/login" className="text-indigo-600 underline font-medium">
+              Sign in
+            </a>
           </div>
         </div>
       </main>
-        <ConfirmationModal
-          isOpen={showModal}
-          onClose={() => setShowModal(false)}
-          onConfirm={confirmRejection}
-        />
-      </>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        onConfirm={confirmRejection}
+        loading={loading}
+      />
     </div>
   );
 }
@@ -395,8 +444,9 @@ const ConfirmationModal = ({
   isOpen,
   onClose,
   onConfirm,
-  message = "Are you sure you want to reject the signup?",
-  title = "Confirm Rejection"
+  loading,
+  message = "Are you sure you want to cancel the signup?",
+  title = "Confirm Cancellation"
 }) => {
   if (!isOpen) return null;
 
@@ -404,48 +454,48 @@ const ConfirmationModal = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-neutral/60 backdrop-blur-sm transition-opacity duration-300"
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300"
         onClick={onClose}
       />
 
       {/* Modal Container */}
       <div 
-        className="relative bg-base-100 rounded-3xl shadow-2xl border-2 border-base-300 w-full max-w-md max-h-[94vh] overflow-hidden animate-in zoom-in duration-300 scale-95"
+        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[94vh] overflow-hidden animate-in zoom-in duration-300 scale-95"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-8 border-b-2 border-base-300 bg-gradient-to-r from-base-200 to-base-300">
-          <h2 className="text-2xl font-bold text-base-content leading-tight">{title}</h2>
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <h2 className="text-xl font-bold text-gray-900">{title}</h2>
           <button
             onClick={onClose}
-            className="btn btn-ghost btn-circle btn-sm hover:bg-error/20 hover:text-error border-2 border-transparent hover:border-error/30 transition-all duration-200"
+            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
             aria-label="Close modal"
+            disabled={loading}
           >
-            <X size={20} className="text-base-content/70" />
+            <X size={20} className="text-gray-500" />
           </button>
         </div>
 
         {/* Content Area */}
-        <div className="p-8 space-y-6">
-          <p className="text-base-content">{message}</p>
-          <div className="flex justify-end gap-4">
+        <div className="p-6 space-y-4">
+          <p className="text-gray-600">{message}</p>
+          <div className="flex justify-end gap-3">
             <button
               onClick={onClose}
-              className="btn btn-outline"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              disabled={loading}
             >
               Cancel
             </button>
             <button
               onClick={onConfirm}
-              className="btn btn-error"
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50"
+              disabled={loading}
             >
-              Confirm
+              {loading ? "Processing..." : "Confirm"}
             </button>
           </div>
         </div>
-
-        {/* Gradient Border Effect */}
-        <div className="absolute inset-0 rounded-3xl pointer-events-none border-2 border-transparent bg-gradient-to-br from-primary/5 to-secondary/5 -z-10" />
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Eye, EyeOff, CircleArrowLeft } from "lucide-react";
+import { Eye, EyeOff, CircleArrowLeft, ArrowLeft } from "lucide-react";
 import { forgotPassword, verifyOtp, resetPassword } from "../api";
 import { useNavigate } from "react-router-dom";
 
@@ -12,11 +12,11 @@ const steps = [
 
 function StepIndicator({ current }) {
   return (
-    <div className="flex items-center justify-center space-x-2 mt-8">
+    <div className="flex items-center justify-center space-x-2 mt-6 md:mt-8">
       {steps.map((_, idx) => (
         <span
           key={idx}
-          className={`w-3 h-3 rounded-full transition-colors duration-300 ${
+          className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition-colors duration-300 ${
             idx === current ? "bg-indigo-600" : "bg-gray-300"
           }`}
         />
@@ -51,10 +51,12 @@ export default function ForgotPasswordFlow() {
 
       // Focus next or prev input automatically
       if (value && index < 3) {
-        document.getElementById(`otp-${index + 1}`).focus();
+        const nextInput = document.getElementById(`otp-${index + 1}`);
+        if (nextInput) nextInput.focus();
       }
       if (!value && index > 0) {
-        document.getElementById(`otp-${index - 1}`).focus();
+        const prevInput = document.getElementById(`otp-${index - 1}`);
+        if (prevInput) prevInput.focus();
       }
     }
   };
@@ -125,16 +127,32 @@ export default function ForgotPasswordFlow() {
     else if (step === 3) navigate("/login");
   };
 
+  const handleBack = () => {
+    if (step > 0) {
+      setStep(step - 1);
+    } else {
+      navigate("/login");
+    }
+  };
+
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* Left Aside */}
-      <aside className="hidden md:flex flex-col w-1/3 border-r bg-white p-10">
+      {/* Mobile Back Button */}
+      <button
+        onClick={handleBack}
+        className="md:hidden absolute top-4 left-4 p-2 bg-white rounded-full shadow-md z-10"
+      >
+        <ArrowLeft size={20} />
+      </button>
+
+      {/* Left Aside - Hidden on mobile */}
+      <aside className="hidden md:flex flex-col w-1/3 border-r bg-white p-8 lg:p-10">
         <nav className="flex-1">
-          <ol className="space-y-10">
+          <ol className="space-y-8 lg:space-y-10">
             {steps.map((label, idx) => (
               <li key={label} className="flex items-start gap-4">
                 <div
-                  className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                  className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
                     step >= idx
                       ? "bg-indigo-500 scale-110 shadow-md"
                       : "bg-gray-300"
@@ -150,13 +168,13 @@ export default function ForgotPasswordFlow() {
                   <div
                     className={
                       step === idx
-                        ? "text-indigo-600 font-semibold"
-                        : "text-gray-400 font-medium"
+                        ? "text-indigo-600 font-semibold text-sm lg:text-base"
+                        : "text-gray-400 font-medium text-sm lg:text-base"
                     }
                   >
                     {label}
                   </div>
-                  <div className="text-xs text-gray-400">
+                  <div className="text-xs text-gray-400 mt-1">
                     {idx === 0 && "Please enter your email address."}
                     {idx === 1 && "Verify the code delivered to your inbox."}
                     {idx === 2 && "Choose a secure password."}
@@ -170,19 +188,29 @@ export default function ForgotPasswordFlow() {
       </aside>
 
       {/* Right Main */}
-      <main className="flex-1 flex flex-col items-center justify-center px-4 py-8">
-        <div className="max-w-md w-full bg-white text-center rounded-2xl shadow p-8">
+      <main className="flex-1 flex flex-col items-center justify-center px-4 py-8 md:py-12">
+        <div className="max-w-md w-full bg-white text-center rounded-xl md:rounded-2xl shadow p-6 md:p-8">
+          {/* Mobile Step Header */}
+          <div className="md:hidden mb-6 text-center">
+            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
+              Step {step + 1} of {steps.length}
+            </h3>
+            <h4 className="text-lg font-semibold text-gray-900 mt-1">
+              {steps[step]}
+            </h4>
+          </div>
+
           {step === 0 && (
             <>
-              <h2 className="text-2xl font-semibold mb-2">Forgot password?</h2>
-              <p className="text-gray-500 mb-6">
+              <h2 className="text-xl md:text-2xl font-semibold mb-2">Forgot password?</h2>
+              <p className="text-gray-500 text-sm md:text-base mb-6">
                 No worries, we'll send you reset instructions.
               </p>
               <input
                 name="email"
                 type="email"
                 placeholder="Enter your email"
-                className="input w-full text-lg px-4 py-3 rounded-lg bg-gray-100"
+                className="input w-full text-base md:text-lg px-4 py-3 rounded-lg bg-gray-100 border border-transparent focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                 value={fields.email}
                 onChange={handleChange}
               />
@@ -190,18 +218,18 @@ export default function ForgotPasswordFlow() {
           )}
           {step === 1 && (
             <>
-              <h2 className="text-2xl font-semibold mb-2">Verify OTP</h2>
-              <p className="text-gray-500 mb-3">
+              <h2 className="text-xl md:text-2xl font-semibold mb-2">Verify OTP</h2>
+              <p className="text-gray-500 text-sm md:text-base mb-3">
                 We sent a verification code to {fields.email}.
               </p>
-              <div className="flex gap-3 justify-center mb-3">
+              <div className="flex gap-2 md:gap-3 justify-center mb-4">
                 {fields.otp.map((v, idx) => (
                   <input
                     key={idx}
                     id={`otp-${idx}`}
                     type="text"
                     maxLength={1}
-                    className="w-12 h-14 text-2xl font-bold rounded-lg bg-gray-100 text-center border border-transparent focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                    className="w-10 h-12 md:w-12 md:h-14 text-xl md:text-2xl font-bold rounded-lg bg-gray-100 text-center border border-transparent focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                     value={v}
                     onChange={(e) => handleOtpChange(idx, e.target.value)}
                   />
@@ -221,8 +249,8 @@ export default function ForgotPasswordFlow() {
           )}
           {step === 2 && (
             <>
-              <h2 className="text-2xl font-semibold mb-2">Set new password</h2>
-              <p className="text-gray-500 mb-6">
+              <h2 className="text-xl md:text-2xl font-semibold mb-2">Set new password</h2>
+              <p className="text-gray-500 text-sm md:text-base mb-6">
                 Your new password must be different to previously used passwords.
               </p>
               <div className="relative w-full">
@@ -230,15 +258,15 @@ export default function ForgotPasswordFlow() {
                   name="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="Password"
-                  className="input w-full text-xl px-4 py-3 rounded-lg bg-gray-100 pr-12"
+                  className="input w-full text-base md:text-lg px-4 py-3 rounded-lg bg-gray-100 border border-transparent focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 pr-12"
                   value={fields.password}
                   onChange={handleChange}
                 />
                 <span
-                  className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400"
                   onClick={() => setShowPassword((prev) => !prev)}
                 >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </span>
               </div>
               <div className="relative w-full mt-3">
@@ -246,18 +274,18 @@ export default function ForgotPasswordFlow() {
                   name="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
                   placeholder="Confirm password"
-                  className="input w-full text-xl px-4 py-3 rounded-lg bg-gray-100 pr-12"
+                  className="input w-full text-base md:text-lg px-4 py-3 rounded-lg bg-gray-100 border border-transparent focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 pr-12"
                   value={fields.confirmPassword}
                   onChange={handleChange}
                 />
                 <span
-                  className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400"
                   onClick={() => setShowConfirmPassword((prev) => !prev)}
                 >
-                  {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </span>
               </div>
-              <ul className="mt-2 text-xs text-gray-500 text-left list-inside list-disc">
+              <ul className="mt-3 text-xs text-gray-500 text-left list-inside list-disc space-y-1">
                 <li>Must be at least 8 characters</li>
                 <li>Must contain one special character</li>
               </ul>
@@ -265,8 +293,8 @@ export default function ForgotPasswordFlow() {
           )}
           {step === 3 && (
             <>
-              <h2 className="text-2xl font-semibold mb-2">Successfully</h2>
-              <p className="text-gray-500 mb-6">
+              <h2 className="text-xl md:text-2xl font-semibold mb-2">Successfully</h2>
+              <p className="text-gray-500 text-sm md:text-base mb-6">
                 Your password has been successfully reset.
                 <br />
                 Click below to log in magically.
@@ -274,24 +302,38 @@ export default function ForgotPasswordFlow() {
             </>
           )}
           {apiError && (
-            <div className="text-red-500 text-sm text-left mb-2 mt-2">{apiError}</div>
+            <div className="text-red-500 text-sm text-left mb-2 mt-2 p-2 bg-red-50 rounded-lg">
+              {apiError}
+            </div>
           )}
           <button
-            className={`mt-8 w-full py-3 bg-indigo-600 text-white text-lg font-medium rounded-lg ${
+            className={`mt-6 md:mt-8 w-full py-3 bg-indigo-600 text-white text-base md:text-lg font-medium rounded-lg hover:bg-indigo-700 transition-colors duration-200 ${
               loading && "opacity-60 cursor-not-allowed"
             }`}
             disabled={loading}
             onClick={handleNext}
           >
-            {step === 0 && "Reset password"}
-            {step === 1 && "Verify OTP"}
-            {step === 2 && "Reset password"}
-            {step === 3 && "Continue"}
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                {step === 0 && "Sending..."}
+                {step === 1 && "Verifying..."}
+                {step === 2 && "Resetting..."}
+                {step === 3 && "Continuing..."}
+              </span>
+            ) : (
+              <>
+                {step === 0 && "Reset password"}
+                {step === 1 && "Verify OTP"}
+                {step === 2 && "Reset password"}
+                {step === 3 && "Continue"}
+              </>
+            )}
           </button>
           <StepIndicator current={step} />
-          <div className="mt-3 text-center text-sm text-gray-400">
+          <div className="mt-4 text-center text-sm text-gray-400">
             Back to{" "}
-            <a href="/login" className="text-indigo-600 underline">
+            <a href="/login" className="text-indigo-600 underline hover:text-indigo-700">
               log in
             </a>
           </div>
