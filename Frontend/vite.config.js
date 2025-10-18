@@ -67,6 +67,9 @@ export default defineConfig({
       },
     }),
   ],
+    css: {
+    transformer: 'postcss', // ✅ Disable lightningcss to prevent native binary issues
+  },
 
   server: {
     host: "0.0.0.0",
