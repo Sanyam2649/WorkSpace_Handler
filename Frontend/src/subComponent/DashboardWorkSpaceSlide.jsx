@@ -119,7 +119,7 @@ export default function WorkSpaceSlide() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {workspaces.map((workspace) => (
                                     <div 
-                                        key={workspace.id} 
+                                        key={workspace._id} 
                                         className="group relative p-4 rounded-xl bg-base-200/50 border border-base-300 hover:border-primary/30 hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
                                     >
                                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -135,15 +135,15 @@ export default function WorkSpaceSlide() {
                                             </div>
                                             
                                             <button 
-                                                onClick={() => handleJoinRequest(workspace.id)}
-                                                disabled={requestedWorkspaces.has(workspace.id)}
+                                                onClick={() => handleJoinRequest(workspace._id)}
+                                                disabled={requestedWorkspaces.has(workspace._id)}
                                                 className={`flex items-center justify-center gap-2 py-2 px-4 rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg active:scale-95 min-w-[100px] ${
-                                                    requestedWorkspaces.has(workspace.id)
+                                                    requestedWorkspaces.has(workspace._id)
                                                         ? "bg-success/20 text-success-content border border-success/30 cursor-not-allowed"
                                                         : "bg-gradient-to-r from-primary to-secondary text-primary-content hover:from-primary/90 hover:to-secondary/90"
                                                 }`}
                                             >
-                                                {requestedWorkspaces.has(workspace.id) ? (
+                                                {requestedWorkspaces.has(workspace._id) ? (
                                                     <>
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />

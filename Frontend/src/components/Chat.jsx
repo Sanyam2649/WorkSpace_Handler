@@ -7,23 +7,14 @@ import {
   X,
   Send,
   Smile,
-  Paperclip,
   Mic,
   Search,
   ChevronLeft,
   ChevronRight,
   Users,
-  FileText,
   Briefcase,
-  Circle,
   CheckCheck,
   MessageCircle,
-  Image,
-  File,
-  Video,
-  Music,
-  XCircle,
-  Download,
   Loader2
 } from "lucide-react";
 
@@ -42,12 +33,11 @@ const EMOJIS = [
   '😾'
 ];
 
-const Chat = ({ isOpen, onClose, workspaceId, documentId, chatType = 'workspace' }) => {
+const Chat = ({ isOpen, onClose, workspaceId, chatType = 'workspace' }) => {
   const [socket, setSocket] = useState(null);
   const [messages, setMessages] = useState([]);
   const [friendList, setFriendList] = useState([]);
   const [workspaceList, setWorkspaceList] = useState([]);
-  const [documentList, setDocumentList] = useState([]);
   const [activeChat, setActiveChat] = useState(null);
   const [newMessage, setNewMessage] = useState("");
   const [isConnected, setIsConnected] = useState(false);
@@ -56,13 +46,10 @@ const Chat = ({ isOpen, onClose, workspaceId, documentId, chatType = 'workspace'
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState([]);
-  const [uploading, setUploading] = useState(false);
 
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const emojiPickerRef = useRef(null);
-  const fileUploadRef = useRef(null);
   const user = useSelector((state) => state.user.value);
 
   // Close emoji picker when clicking outside
@@ -70,9 +57,6 @@ const Chat = ({ isOpen, onClose, workspaceId, documentId, chatType = 'workspace'
     const handleClickOutside = (event) => {
       if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
         setShowEmojiPicker(false);
-      }
-      if (fileUploadRef.current && !fileUploadRef.current.contains(event.target)) {
-        // Keep file upload open for better UX
       }
     };
 
@@ -82,7 +66,7 @@ const Chat = ({ isOpen, onClose, workspaceId, documentId, chatType = 'workspace'
     };
   }, []);
 
-  // Auto-select workspace or document chat when provided
+  // Auto-select workspace chat when provided
   useEffect(() => {
     if (workspaceId && workspaceList.length > 0) {
       const workspaceChat = workspaceList.find(w => w.workspaceId === workspaceId);
@@ -95,24 +79,14 @@ const Chat = ({ isOpen, onClose, workspaceId, documentId, chatType = 'workspace'
           ...workspaceChat
         });
       }
-    } else if (documentId && documentList.length > 0) {
-      const documentChat = documentList.find(d => d.documentId === documentId);
-      if (documentChat) {
-        handleSelectChat({
-          type: 'document',
-          roomId: documentId,
-          otherUserId: null,
-          name: documentChat.title,
-          ...documentChat
-        });
-      }
     }
-  }, [workspaceId, documentId, workspaceList, documentList]);
+  }, [workspaceId, workspaceList]);
 
   // Socket connection
   useEffect(() => {
     if (!isOpen || !user) return;
 
+    console.log("🔌 Attempting socket connection...");
     const sock = io(import.meta.env.VITE_APP_SOCKET_URL, {
       auth: {
         token: sessionStorage.getItem("accessToken")
@@ -122,35 +96,41 @@ const Chat = ({ isOpen, onClose, workspaceId, documentId, chatType = 'workspace'
     setSocket(sock);
 
     sock.on("connect", () => {
-      console.log("✅ Socket connected");
+      console.log("✅ Socket connected successfully");
       setIsConnected(true);
     });
 
-    sock.on("disconnect", () => {
-      console.log("❌ Socket disconnected");
+    sock.on("disconnect", (reason) => {
+      console.log("❌ Socket disconnected:", reason);
+      setIsConnected(false);
+    });
+
+    sock.on("connect_error", (error) => {
+      console.log("❌ Socket connection error:", error);
       setIsConnected(false);
     });
 
     sock.on("chat:message", (message) => {
-      console.log("📨 New message:", message);
+      console.log("📨 New message received:", message);
       setMessages(prev => {
-        // Remove temporary messages and avoid duplicates
         const filtered = prev.filter(msg => !msg.isSending);
-        if (filtered.some(msg => msg._id === message._id)) return filtered;
+        if (filtered.some(msg => msg._id === message._id)) {
+          console.log("🔄 Duplicate message detected, skipping");
+          return filtered;
+        }
+        console.log("✅ Adding new message to state");
         return [...filtered, message];
       });
       scrollToBottom();
     });
 
-    sock.on("chat:typing", (data) => {
-      if (data.isTyping) {
-        setTypingUsers(prev => [...prev.filter(u => u.userId !== data.userId), data]);
-      } else {
-        setTypingUsers(prev => prev.filter(u => u.userId !== data.userId));
-      }
+    sock.on("chat:error", (error) => {
+      console.error("❌ Chat error from server:", error);
+      alert(`Chat error: ${error.msg}`);
     });
 
     return () => {
+      console.log("🧹 Cleaning up socket connection");
       sock.disconnect();
       setSocket(null);
     };
@@ -166,7 +146,6 @@ const Chat = ({ isOpen, onClose, workspaceId, documentId, chatType = 'workspace'
         const data = await getFriendList();
         setFriendList(data.friendList || []);
         setWorkspaceList(data.workspaceList || []);
-        setDocumentList(data.documentList || []);
       } catch (err) {
         console.error("Error loading chat data:", err);
       } finally {
@@ -176,78 +155,6 @@ const Chat = ({ isOpen, onClose, workspaceId, documentId, chatType = 'workspace'
 
     loadChatData();
   }, [isOpen]);
-
-  // File to Base64 conversion
-  const fileToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = error => reject(error);
-    });
-  };
-
-  // Handle file upload and convert to base64 strings
-  const handleFileUpload = async (event) => {
-    const files = Array.from(event.target.files);
-    if (files.length === 0) return;
-
-    setUploading(true);
-
-    try {
-      const filePromises = files.map(async (file) => {
-        const base64String = await fileToBase64(file);
-        
-        return {
-          id: `file-${Date.now()}-${Math.random()}`,
-          name: file.name,
-          type: file.type,
-          size: file.size,
-          base64: base64String, // This is the string we'll send to backend
-          isUploading: true
-        };
-      });
-
-      const newFiles = await Promise.all(filePromises);
-      setUploadedFiles(prev => [...prev, ...newFiles]);
-      
-      // Simulate upload process
-      setTimeout(() => {
-        setUploadedFiles(prev => 
-          prev.map(file => 
-            newFiles.some(f => f.id === file.id) 
-              ? { ...file, isUploading: false }
-              : file
-          )
-        );
-      }, 1000);
-
-    } catch (error) {
-      console.error('Error converting files to base64:', error);
-      alert('Error processing files. Please try again.');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const removeUploadedFile = (fileId) => {
-    setUploadedFiles(prev => prev.filter(file => file.id !== fileId));
-  };
-
-  const getFileIcon = (fileType) => {
-    if (fileType.startsWith('image/')) return <Image size={16} />;
-    if (fileType.startsWith('video/')) return <Video size={16} />;
-    if (fileType.startsWith('audio/')) return <Music size={16} />;
-    return <File size={16} />;
-  };
-
-  const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
 
   const handleEmojiSelect = (emoji) => {
     setNewMessage(prev => prev + emoji);
@@ -301,10 +208,10 @@ const Chat = ({ isOpen, onClose, workspaceId, documentId, chatType = 'workspace'
     }
   };
 
-  // Send message with files as base64 strings
+  // Send message
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if ((!newMessage.trim() && uploadedFiles.length === 0) || !socket || !activeChat) return;
+    if (!newMessage.trim() || !socket || !activeChat) return;
 
     const messageData = {
       type: activeChat.type,
@@ -312,12 +219,6 @@ const Chat = ({ isOpen, onClose, workspaceId, documentId, chatType = 'workspace'
       from: user._id,
       to: activeChat.otherUserId,
       message: newMessage.trim(),
-      files: uploadedFiles.length > 0 ? uploadedFiles.map(file => ({
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        base64: file.base64 // Send as string to backend
-      })) : undefined
     };
 
     // Optimistically add message
@@ -327,17 +228,10 @@ const Chat = ({ isOpen, onClose, workspaceId, documentId, chatType = 'workspace'
       from: user,
       createdAt: new Date(),
       isSending: true,
-      files: uploadedFiles.length > 0 ? uploadedFiles.map(file => ({
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        url: file.base64 // Use base64 as preview URL temporarily
-      })) : undefined
     };
 
     setMessages(prev => [...prev, tempMessage]);
     setNewMessage("");
-    setUploadedFiles([]);
     scrollToBottom();
 
     // Stop typing indicator
@@ -347,32 +241,10 @@ const Chat = ({ isOpen, onClose, workspaceId, documentId, chatType = 'workspace'
     socket.emit("chat:message", messageData);
   };
 
-  // Render message content with file support
+  // Render message content
   const renderMessageContent = (msg) => {
     return (
       <div className="space-y-2">
-        {msg.files && msg.files.length > 0 && (
-          <div className="space-y-2">
-            {msg.files.map((file, index) => (
-              <div key={index} className="flex items-center gap-2 p-2 bg-base-200 rounded-lg">
-                {getFileIcon(file.type)}
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate">{file.name}</div>
-                  <div className="text-xs text-base-content/60">{formatFileSize(file.size)}</div>
-                </div>
-                {file.url && (
-                  <a 
-                    href={file.url} 
-                    download={file.name}
-                    className="btn btn-ghost btn-xs"
-                  >
-                    <Download size={14} />
-                  </a>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
         {msg.message && (
           <div className="text-sm leading-relaxed">{msg.message}</div>
         )}
@@ -421,20 +293,42 @@ const Chat = ({ isOpen, onClose, workspaceId, documentId, chatType = 'workspace'
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  // Enhanced handleClose function
   const handleClose = () => {
+    console.log("🔒 Closing chat...");
+    
+    // Leave current chat room if active
     if (socket && activeChat) {
       socket.emit("chat:leave", {
         type: activeChat.type,
         roomId: activeChat.roomId,
         userId: user._id
       });
+      console.log(`🚪 Left chat room: ${activeChat.type}_${activeChat.roomId}`);
     }
+
+    // Clean up socket connection
+    if (socket) {
+      socket.disconnect();
+      setSocket(null);
+      console.log("🔌 Socket disconnected");
+    }
+
+    // Reset all state
     setActiveChat(null);
     setMessages([]);
     setNewMessage("");
-    setUploadedFiles([]);
     setShowEmojiPicker(false);
-    onClose();
+    setTypingUsers([]);
+    setIsConnected(false);
+
+    // Call the parent's onClose function
+    if (onClose) {
+      console.log("📞 Calling parent onClose");
+      onClose();
+    } else {
+      console.warn("⚠️ No onClose prop provided");
+    }
   };
 
   const formatTime = (timestamp) => {
@@ -448,7 +342,6 @@ const Chat = ({ isOpen, onClose, workspaceId, documentId, chatType = 'workspace'
     switch (type) {
       case 'user': return <Users size={16} />;
       case 'workspace': return <Briefcase size={16} />;
-      case 'document': return <FileText size={16} />;
       default: return <MessageCircle size={16} />;
     }
   };
@@ -457,11 +350,11 @@ const Chat = ({ isOpen, onClose, workspaceId, documentId, chatType = 'workspace'
     switch (type) {
       case 'user': return 'from-primary to-secondary';
       case 'workspace': return 'from-accent to-info';
-      case 'document': return 'from-success to-warning';
       default: return 'from-primary to-secondary';
     }
   };
 
+  // Don't render if not open
   if (!isOpen) return null;
 
   return (
@@ -499,6 +392,7 @@ const Chat = ({ isOpen, onClose, workspaceId, documentId, chatType = 'workspace'
                   <button
                     onClick={handleClose}
                     className="p-2 hover:bg-base-300 rounded-xl transition-all duration-200 group"
+                    title="Close chat"
                   >
                     <X size={20} className="text-base-content group-hover:scale-110 transition-transform" />
                   </button>
@@ -522,7 +416,6 @@ const Chat = ({ isOpen, onClose, workspaceId, documentId, chatType = 'workspace'
                 <ChatSelector
                   friendList={friendList}
                   workspaceList={workspaceList}
-                  documentList={documentList}
                   onSelectChat={handleSelectChat}
                   activeChat={activeChat}
                   loading={loading}
@@ -554,8 +447,7 @@ const Chat = ({ isOpen, onClose, workspaceId, documentId, chatType = 'workspace'
                       <div className={`w-12 h-12 bg-gradient-to-br ${getChatColor(activeChat.type)} rounded-2xl flex items-center justify-center text-primary-content font-bold text-lg shadow-lg`}>
                         {activeChat.name?.charAt(0)?.toUpperCase() || 'U'}
                       </div>
-                      <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-base-100 ${isConnected ? 'bg-success' : 'bg-error'
-                        }`} />
+                      <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-base-100 ${isConnected ? 'bg-success' : 'bg-error'}`} />
                     </div>
 
                     <div className="flex-1 min-w-0">
@@ -574,21 +466,17 @@ const Chat = ({ isOpen, onClose, workspaceId, documentId, chatType = 'workspace'
                             Workspace Chat
                           </div>
                         )}
-                        {activeChat.type === 'document' && (
-                          <div className="text-xs text-base-content/50">
-                            Document Chat
-                          </div>
-                        )}
                       </div>
                     </div>
                   </div>
                   
-                  {/* Main Close Button */}
+                  {/* Enhanced Close Button - Always visible when chat is active */}
                   <button
                     onClick={handleClose}
-                    className="p-2 hover:bg-base-300 rounded-xl transition-all duration-200 group md:hidden"
+                    className="p-3 hover:bg-error/10 rounded-xl transition-all duration-200 group text-error hover:text-error/80"
+                    title="Close chat"
                   >
-                    <X size={20} className="text-base-content group-hover:scale-110 transition-transform" />
+                    <X size={24} className="group-hover:scale-110 transition-transform" />
                   </button>
                 </div>
               </div>
@@ -653,70 +541,10 @@ const Chat = ({ isOpen, onClose, workspaceId, documentId, chatType = 'workspace'
                 </div>
               </div>
 
-              {/* Uploaded Files Preview */}
-              {uploadedFiles.length > 0 && (
-                <div className="border-t border-base-300 bg-base-200 p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-base-content">Files to send:</span>
-                    <button
-                      onClick={() => setUploadedFiles([])}
-                      className="text-xs text-error hover:text-error/80"
-                    >
-                      Clear all
-                    </button>
-                  </div>
-                  <div className="space-y-2">
-                    {uploadedFiles.map((file) => (
-                      <div key={file.id} className="flex items-center gap-3 p-2 bg-base-100 rounded-lg border border-base-300">
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          {file.isUploading ? (
-                            <Loader2 size={16} className="animate-spin text-primary" />
-                          ) : (
-                            getFileIcon(file.type)
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium truncate">{file.name}</div>
-                            <div className="text-xs text-base-content/60">{formatFileSize(file.size)}</div>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => removeUploadedFile(file.id)}
-                          className="btn btn-ghost btn-xs text-error hover:bg-error/10"
-                          disabled={file.isUploading}
-                        >
-                          <XCircle size={14} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Message Input */}
               <div className="border-t border-base-300 bg-base-100 p-6">
                 <form onSubmit={handleSendMessage} className="flex gap-3 items-end">
                   <div className="flex gap-2">
-                    {/* File Upload */}
-                    <div className="relative" ref={fileUploadRef}>
-                      <button
-                        type="button"
-                        onClick={() => document.getElementById('file-input').click()}
-                        disabled={uploading}
-                        className="p-2.5 hover:bg-base-300 rounded-xl transition-colors text-base-content/70 hover:text-base-content disabled:opacity-50"
-                        title="Attach files"
-                      >
-                        {uploading ? <Loader2 size={20} className="animate-spin" /> : <Paperclip size={20} />}
-                      </button>
-                      <input
-                        id="file-input"
-                        type="file"
-                        multiple
-                        onChange={handleFileUpload}
-                        accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt"
-                        className="hidden"
-                      />
-                    </div>
-
                     {/* Emoji Picker */}
                     <div className="relative" ref={emojiPickerRef}>
                       <button
@@ -780,7 +608,7 @@ const Chat = ({ isOpen, onClose, workspaceId, documentId, chatType = 'workspace'
                     {/* Send Button */}
                     <button
                       type="submit"
-                      disabled={(!newMessage.trim() && uploadedFiles.length === 0) || !isConnected || uploading}
+                      disabled={!newMessage.trim() || !isConnected}
                       className="p-2.5 bg-gradient-to-br from-primary to-secondary text-primary-content rounded-xl hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105"
                       title="Send message"
                     >
@@ -792,7 +620,16 @@ const Chat = ({ isOpen, onClose, workspaceId, documentId, chatType = 'workspace'
             </>
           ) : (
             // Empty State
-            <div className="flex-1 flex items-center justify-center text-base-content/60">
+            <div className="flex-1 flex items-center justify-center text-base-content/60 relative">
+              {/* Close button for empty state */}
+              <button
+                onClick={handleClose}
+                className="absolute top-6 right-6 p-3 hover:bg-error/10 rounded-xl transition-all duration-200 group text-error hover:text-error/80"
+                title="Close chat"
+              >
+                <X size={24} className="group-hover:scale-110 transition-transform" />
+              </button>
+              
               <div className="text-center max-w-md px-6">
                 <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-3xl flex items-center justify-center">
                   <div className="w-12 h-12 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center text-primary-content">
@@ -803,7 +640,7 @@ const Chat = ({ isOpen, onClose, workspaceId, documentId, chatType = 'workspace'
                   Start a Conversation
                 </h3>
                 <p className="text-base-content/70 mb-6">
-                  Choose a workspace or document from the sidebar to begin collaborating with your team.
+                  Choose a workspace or friend from the sidebar to start chatting.
                 </p>
                 <button
                   onClick={() => setSidebarOpen(true)}

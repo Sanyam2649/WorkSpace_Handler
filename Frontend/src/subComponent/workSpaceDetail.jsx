@@ -102,7 +102,6 @@ const getStatusText = (isActive, isRequested) => {
             <h2 className="text-xl  text-base-content mb-4 flex items-center justify-between">
               Team Members
                           <div className="flex flex-row gap-2">
-                              <Search  />
                               <SquarePen onClick={handleEditMember} />
                               <Plus onClick={handleAddMember}/>
                           </div>

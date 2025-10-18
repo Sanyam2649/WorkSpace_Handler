@@ -22,7 +22,7 @@ const testimonials = [
 ];
 
 
-const Login = ({ onLoginSuccess }) => {
+const Login = () => {
   
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -87,8 +87,7 @@ const Login = ({ onLoginSuccess }) => {
     try {
       const response = await login(formData.identifier, formData.password);
       setAuth(response.accessToken, response.refreshToken, response.user);
-      const lastPage = getAndClearLastPage();
-      onLoginSuccess(lastPage);
+      navigate('/dashboard');
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.');
     } finally {
@@ -192,7 +191,7 @@ const Login = ({ onLoginSuccess }) => {
                   <input type="checkbox" className="accent-blue-600" />
                   <span className="text-gray-500">Remember me</span>
                 </label>
-                <a href="#" className="text-blue-500 hover:underline font-medium">Forgot password</a>
+                <a href='/forgot-password' className="text-blue-500 hover:underline font-medium">Forgot password</a>
               </div>
               <button
                 type="submit"

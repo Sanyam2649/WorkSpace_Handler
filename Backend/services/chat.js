@@ -1,6 +1,7 @@
 const ChatRoom = require("../models/chatModel");
 const Workspace = require("../models/workspace");
 const Document = require("../models/document");
+const User = require("../models/user"); // Make sure to import User model
 const { isBlocked, onlyAdminChatInWorkspace, onlyAdminorEditorChatInWorkspace, onlyAdminChatInDocs, onlyAdminorEditorChatInInDocument } = require("../config/chatAcess");
 
 module.exports = (io) => {
@@ -24,6 +25,8 @@ module.exports = (io) => {
     // Handle sending messages
     socket.on("chat:message", async ({ type, roomId, from, to, message }) => {
       try {
+        console.log("📨 Received message:", { type, roomId, from, to, message });
+
         if (!message?.trim()) {
           socket.emit("chat:error", { msg: "❌ Message cannot be empty" });
           return;
@@ -63,77 +66,86 @@ module.exports = (io) => {
           socket.emit("chat:error", { msg: "❌ You are not allowed to chat here" });
           return;
         }
+
         let chatRoom = null;
+        
+        // Find or create chat room
         if (chatType === "direct") {
           chatRoom = await ChatRoom.findOne({
             type: chatType,
             toModel: "User",
             participants: { $all: [from, to] }
-          });
-        }
-        else {
+          }).populate('messages.user', 'firstName lastName username avatar');
+        } else {
           chatRoom = await ChatRoom.findOne({
             type: chatType,
             to: roomId,
             toModel: chatType === "workspace" ? "Workspace" : "Document",
+          }).populate('messages.user', 'firstName lastName username avatar');
+        }
+
+        if (!chatRoom) {
+          console.log("🆕 Creating new chat room");
+          chatRoom = new ChatRoom({
+            type: chatType,
+            to: chatType === "direct" ? to : roomId,
+            toModel: chatType === "direct" ? "User" : chatType === "workspace" ? "Workspace" : "Document",
+            messages: [],
+            participants: chatType === "direct" ? [from, to] : []
           });
         }
 
+        // Create and save message
+        const newMessage = {
+          user: from,
+          message: message.trim(),
+          isSeen: false,
+          createdAt: new Date(),
+        };
 
-          if (!chatRoom) {
-            chatRoom = new ChatRoom({
-              type: chatType,
-              to: chatType === "direct" ? to : roomId,
-              toModel: chatType === "direct" ? "User" : chatType === "workspace" ? "Workspace" : "Document",
-              messages: [],
-              participants: chatType === "direct" ? [from, to] : null
-            });
-          }
+        chatRoom.messages.push(newMessage);
+        await chatRoom.save();
 
-          // Create and save message
-          const newMessage = {
-            user: from,
-            message: message.trim(),
-            isSeen: false,
-            createdAt: new Date(),
-          };
+        // Populate the newly added message
+        await chatRoom.populate('messages.user', 'firstName lastName username avatar');
 
-          chatRoom.messages.push(newMessage);
-          await chatRoom.save();
+        const savedMessage = chatRoom.messages[chatRoom.messages.length - 1];
 
-          // Populate user data
-          await chatRoom.populate('messages.user', 'firstName lastName username avatar');
+        // Prepare payload
+        const emitPayload = {
+          _id: savedMessage._id,
+          chatRoomId: chatRoom._id,
+          from: savedMessage.user,
+          to: chatType === "direct" ? to : roomId,
+          message: savedMessage.message,
+          type: chatType,
+          roomId: roomId,
+          isSeen: savedMessage.isSeen,
+          createdAt: savedMessage.createdAt,
+        };
 
-          const savedMessage = chatRoom.messages[chatRoom.messages.length - 1];
+        console.log("📤 Emitting message to room:", `${type}_${roomId}`);
+        console.log("📦 Payload:", emitPayload);
 
-          // Prepare payload
-          const emitPayload = {
-            _id: savedMessage._id,
-            chatRoomId: chatRoom._id,
-            from: savedMessage.user,
-            to: chatType === "direct" ? to : roomId,
-            message: savedMessage.message,
-            type: chatType,
-            isSeen: savedMessage.isSeen,
-            createdAt: savedMessage.createdAt,
-          };
+        // Emit to room (includes all participants)
+        const roomName = `${type}_${roomId}`;
+        io.to(roomName).emit("chat:message", emitPayload);
 
-          // Emit to room (includes all participants)
-          const roomName = `${type}_${roomId}`;
-          io.to(roomName).emit("chat:message", emitPayload);
+        console.log("✅ Message sent successfully");
 
-
-        } catch (err) {
-          console.error("❌ Chat error:", err);
-          socket.emit("chat:error", { msg: "Failed to send message" });
-        }
-      });
+      } catch (err) {
+        console.error("❌ Chat error:", err);
+        socket.emit("chat:error", { msg: "Failed to send message" });
+      }
+    });
 
     // Typing indicators
     socket.on("chat:typing", ({ type, roomId, userId, isTyping }) => {
       const roomName = `${type}_${roomId}`;
+      console.log(`⌨️ ${userId} ${isTyping ? 'started' : 'stopped'} typing in ${roomName}`);
       socket.to(roomName).emit("chat:typing", {
         userId,
+        userName: userId, // You might want to populate this with actual user name
         isTyping,
       });
     });

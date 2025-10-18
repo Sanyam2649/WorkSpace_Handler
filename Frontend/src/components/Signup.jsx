@@ -167,10 +167,12 @@ const confirmRejection = async () => {
     setLoading(false);
   };
   
-  const handleNavigate = () => {
-     setLoading(true);
-     navigate('/login')
-  }
+ const handleNavigate = () => {
+  setLoading(true);
+  setTimeout(() => {
+    navigate('/login');
+  }, 500);
+};
 
   const handleNext = async () => {
     if (!validateStep()) return;

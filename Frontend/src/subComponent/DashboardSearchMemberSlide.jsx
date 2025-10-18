@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 import { searchMembers, sendFriendRequest } from '../api';
-import { useNavigate } from 'react-router-dom';
+import Chat from '../components/Chat'; 
 
 const SearchMemberSlide = () => {
-    const navigate = useNavigate();
     const [query, setQuery] = useState("");
     const [members, setMembers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isClosed, setIsClosed] = useState(true);
     const [requestedMembers, setRequestedMembers] = useState(new Set());
     const [showSearch, setShowSearch] = useState(true);
+    
+    // Chat state
+    const [isChatOpen, setIsChatOpen] = useState(false);
+    const [selectedChat, setSelectedChat] = useState(null);
 
     const handleSearch = async () => {
         if (!query.trim()) return;
@@ -39,8 +42,29 @@ const SearchMemberSlide = () => {
         }
     };
 
-    const handleConnect = () => {
-        navigate('/chat');
+    // New function to start chat with a member
+    const handleStartChat = (member) => {
+        setSelectedChat({
+            type: 'user',
+            roomId: `user_${member._id}`,
+            otherUserId: member._id,
+            name: member.profile?.firstName && member.profile?.lastName 
+                ? `${member.profile.firstName} ${member.profile.lastName}`
+                : member.username,
+            memberData: member
+        });
+        setIsChatOpen(true);
+    };
+
+    // New function to handle general chat opening
+    const handleOpenChat = () => {
+        setSelectedChat(null); // No specific chat selected, user can choose from sidebar
+        setIsChatOpen(true);
+    };
+
+    const handleCloseChat = () => {
+        setIsChatOpen(false);
+        setSelectedChat(null);
     };
 
     const handleKeyPress = (e) => {
@@ -62,6 +86,16 @@ const SearchMemberSlide = () => {
 
     return (
         <div className="w-full h-full flex flex-col">
+            {/* Chat Component */}
+            {isChatOpen && (
+                <Chat 
+                    isOpen={isChatOpen}
+                    onClose={handleCloseChat}
+                    workspaceId={selectedChat?.type === 'workspace' ? selectedChat.roomId : null}
+                    chatType={selectedChat?.type || 'user'}
+                />
+            )}
+
             {/* Content Container */}
             <div className="relative z-10 w-full h-full flex flex-col p-4 lg:p-6">
                 {/* Search Section */}
@@ -242,13 +276,14 @@ const SearchMemberSlide = () => {
                                                 </button>
                                                 
                                                 <button 
-                                                    onClick={handleConnect}
+                                                    onClick={() => handleStartChat(member)}
                                                     className="px-4 py-2.5 bg-base-300 hover:bg-base-400 text-base-content rounded-xl font-medium transition-all duration-200 hover:scale-105 flex items-center gap-2"
                                                     title="Start Chat"
                                                 >
                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                                                     </svg>
+                                                    Chat
                                                 </button>
                                             </div>
                                         </div>
@@ -278,7 +313,7 @@ const SearchMemberSlide = () => {
 
                         <div className="flex flex-col sm:flex-row gap-4 mt-4">
                             <button
-                                onClick={handleConnect}
+                                onClick={handleOpenChat}
                                 className="px-8 py-4 bg-gradient-to-r from-primary to-secondary text-primary-content rounded-2xl font-semibold transition-all duration-300 hover:from-primary/90 hover:to-secondary/90 hover:scale-105 shadow-lg hover:shadow-xl flex items-center gap-3"
                             >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -322,7 +357,7 @@ const SearchMemberSlide = () => {
                                 Try Another Search
                             </button>
                             <button
-                                onClick={handleConnect}
+                                onClick={handleOpenChat}
                                 className="px-6 py-3 bg-base-300 hover:bg-base-400 text-base-content rounded-xl font-semibold transition-all duration-300 hover:scale-105"
                             >
                                 Browse Chat

@@ -377,8 +377,7 @@ export default function Workspace() {
                 <p className="text-base-content/60 text-lg mb-8 max-w-md mx-auto">
                   Start organizing your work by creating your first document
                 </p>
-                {isAdmin && (
-                  <div className="relative inline-block group">
+              <div className="relative inline-block group">
                     <button
                       className="bg-gradient-to-r from-primary to-secondary text-primary-content px-6 py-3 rounded-xl hover:shadow-lg transition-all duration-300 inline-flex items-center gap-2 font-semibold"
                       onClick={() => setShowCreateDocumentForm(true)}
@@ -391,7 +390,6 @@ export default function Workspace() {
                       <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1 w-3 h-3 bg-base-100 border-r-2 border-b-2 border-primary/20 rotate-45"></div>
                     </div>
                   </div>
-                )}
               </div>
             ) : (
               <div className="grid gap-4 max-h-[600px] overflow-hidden p-10">
@@ -506,7 +504,7 @@ export default function Workspace() {
 
             <Chat
               isOpen={true}
-              onClose={() => { }}
+              onClose={() => {is }}
               workspaceId={activeChat?.type === 'workspace' ? id : undefined}
               documentId={activeChat?.type === 'document' ? activeChat.roomId : undefined}
               chatType={activeChat?.type || 'workspace'}

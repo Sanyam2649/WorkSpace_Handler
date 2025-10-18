@@ -36,6 +36,8 @@ const Document = ({ documentId, onClose, onUpdate }) => {
   const { currentDocument, loading, updating, error } = useSelector(
     (state) => state.documents
   );
+  
+  console.log(currentDocument);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({ title: '', content: '' });

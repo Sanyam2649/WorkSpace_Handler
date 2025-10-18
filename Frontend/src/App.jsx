@@ -16,6 +16,7 @@ import Login from './components/Login';
 import SignupFlow from './components/Signup';
 import Chat from './components/Chat';
 import LandingPage from './pages/LandingPage';
+import ForgotPasswordFlow from './components/forgotpassword';
 
 function App() {
   const dispatch = useDispatch();  
@@ -32,6 +33,7 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignupFlow />} />
+          <Route path="/forgot-password" element={<ForgotPasswordFlow/>}/>
           <Route path="/auth" element={<Auth />} />
           <Route path="/auth-login" element={<OAuthRedirectHandler />} />
           

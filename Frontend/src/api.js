@@ -264,7 +264,6 @@ export const searchWorkspaceMembers = async (workspaceId, query) => {
  * @param {string} workspaceId - ID of the workspace
  */
 export const requestToJoinWorkspace = async (workspaceId) => {
-  console.log(getAuthHeaders());
   const response = await fetch(`${API_BASE_URL}/workspace/request/${workspaceId}`, {
     method: "POST",
     headers: getAuthHeaders(),
@@ -785,6 +784,40 @@ export const verifyOtp = async(verificationData) => {
   });
   return handleResponse(response);
 };
+
+/**
+ * @param {Object} forgotData
+ * @param {string} forgotData.identifier - Email or username
+ */
+
+export const forgotPassword = async (forgotData) => {
+  const response = await fetch(`${API_BASE_URL}/user/forgot-password`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(forgotData),
+  });
+  return handleResponse(response);
+};
+
+/**
+ * @param {Object} resetData
+ * @param {string} resetData.identifier - Email or username
+ * @param {string} resetData.newPassword - One-time password
+ */
+
+export const resetPassword = async (resetData) => {
+  const response = await fetch(`${API_BASE_URL}/user/reset-password`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(resetData),
+  });
+  return handleResponse(response);
+};
+
 
 /**
  * @param {Object} passwordData

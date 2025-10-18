@@ -204,6 +204,80 @@ router.post("/login", async (req, res) => {
   }
 });
 
+router.post("/forgot-password", async (req, res) => {
+  try {
+    const { identifier } = req.body;
+  
+
+    if (!identifier) {
+      return res.status(400).json({ message: "Email or username is required" });
+    }
+
+    // Find user by email or username
+    const user = await User.findOne({
+      $or: [{ email: identifier }, { username: identifier }],
+    });
+    
+    console.log(user ,"my user");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Generate OTP
+    const otp = await generateUniqueOTP();
+
+    // Save OTP to user
+    user.otp = otp;
+    user.otpExpires = Date.now() + 10 * 60 * 1000; // expires in 10 min
+    
+    
+
+    // Send OTP via email
+    await sendMail(
+      user.email,
+      "Password Reset OTP",
+       `Your OTP for password reset is ${otp}. It will expire in 10 minutes.`,
+       null
+    );
+    
+    await user.save();
+  
+    return res.status(200).json({ message: "OTP sent successfully to your email" });
+
+  } catch (error) {
+    console.error("Error in forgot-password:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.post("/reset-password", async (req, res) => {
+  try {
+    const { identifier, newPassword } = req.body;
+
+    if (!identifier || !newPassword) {
+      return res.status(400).json({ message: "Identifier and new password are required" });
+    }
+    const user = await User.findOne({
+      $or: [{ email: identifier }, { username: identifier }],
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.password = newPassword;
+    user.otp = undefined;
+
+    await user.save();
+
+    return res.status(200).json({ message: "Password reset successfully" });
+
+  } catch (error) {
+    console.error("Error in reset-password:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
 // ---------------------- Profile Update ----------------------
 router.patch("/profile", upload.single("avatar"), authMiddleware, async (req, res) => {
   try {
