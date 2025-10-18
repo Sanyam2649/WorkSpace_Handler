@@ -15,7 +15,7 @@ import WorkspaceDetail from './subComponent/workSpaceDetail';
 import Login from './components/Login';
 import SignupFlow from './components/Signup';
 import Chat from './components/Chat';
-import LandingPage from './pages/LandingPage';
+import LandingPage from './pages/landingPage';
 import ForgotPasswordFlow from './components/forgotpassword';
 
 function App() {

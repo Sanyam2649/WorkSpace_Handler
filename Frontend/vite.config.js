@@ -68,11 +68,6 @@ export default defineConfig({
     }),
   ],
 
-  // 👇 Disable LightningCSS globally (Vercel safe)
-  css: {
-    transformer: 'postcss',
-  },
-
   server: {
     host: "0.0.0.0",
     port: 5173,
