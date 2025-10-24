@@ -149,7 +149,7 @@ const LoadingSpinner = ({ size = "md", text = "Loading..." }) => (
 );
 
 // Section Header Component
-const SectionHeader = ({ title, description, onRefresh, refreshInProgress, icon: Icon, section }) => (
+const SectionHeader = ({ title, description, onRefresh, refreshInProgress, icon: Icon }) => (
   <div className="flex items-center justify-between mb-6">
     <div className="flex items-center gap-3">
       <div className="p-2 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-xl border border-primary/20">
@@ -162,16 +162,13 @@ const SectionHeader = ({ title, description, onRefresh, refreshInProgress, icon:
         )}
       </div>
     </div>
-    <Tooltip content={`Refresh ${title.toLowerCase()} data`}>
       <button
         onClick={onRefresh}
         disabled={refreshInProgress}
         className="p-2 bg-base-200 hover:bg-base-300 rounded-xl border border-base-300 transition-all duration-200 disabled:opacity-50"
       >
         <RefreshCw className={`w-4 h-4 text-base-content/70 ${refreshInProgress ? "animate-spin" : ""}`} />
-      </button>
-    </Tooltip>
-  </div>
+      </button>  </div>
 );
 
 export default function Analytics() {

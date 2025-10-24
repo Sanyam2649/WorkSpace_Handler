@@ -62,7 +62,7 @@ router.post("/create", async (req, res) => {
       slug: uniqueSlug,
       description,
       createdBy: req.user.id,
-      members: [{ user: req.user.id, roles: ["Admin"] }],
+      members: [{ user: req.user.id, roles: ["Admin"] , isActive: true }],
       trackActivity: [{
         activity  : "WorkSpace has been created",
         createdAt : new Date()

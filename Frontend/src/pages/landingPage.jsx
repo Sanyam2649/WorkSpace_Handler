@@ -298,93 +298,124 @@ const LandingPage = () => {
       {/* Contact Section */}
       <section id="contact" className="py-16 sm:py-20 px-4 sm:px-6 bg-white">
         <div className="container mx-auto">
-          <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4 font-poppins text-slate-800">Get In Touch</h2>
-            <p className="text-base sm:text-lg md:text-xl text-slate-600 max-w-2xl mx-auto font-light tracking-wide px-4">
-              Have questions? We'd love to hear from you
-            </p>
+    <div className="text-center mb-12 sm:mb-16">
+      <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4 font-poppins text-slate-800">Get In Touch</h2>
+      <p className="text-base sm:text-lg md:text-xl text-slate-600 max-w-2xl mx-auto font-light tracking-wide px-4">
+        Have questions? We'd love to hear from you
+      </p>
+    </div>
+    
+    <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 max-w-6xl mx-auto">
+      <div className="space-y-4 sm:space-y-6">
+        <div className="flex items-center gap-3 sm:gap-4 p-4 sm:p-6 border border-slate-200/60 rounded-xl sm:rounded-2xl bg-slate-50/50">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg sm:rounded-xl flex items-center justify-center text-blue-600 flex-shrink-0">
+            <Mail size={20} sm:size={24} />
           </div>
-          
-          <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 max-w-6xl mx-auto">
-            <div className="space-y-4 sm:space-y-6">
-              <div className="flex items-center gap-3 sm:gap-4 p-4 sm:p-6 border border-slate-200/60 rounded-xl sm:rounded-2xl bg-slate-50/50">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg sm:rounded-xl flex items-center justify-center text-blue-600 flex-shrink-0">
-                  <Mail size={20} sm:size={24} />
-                </div>
-                <div>
-                  <div className="font-semibold text-slate-800 text-sm sm:text-base">Email Us</div>
-                  <div className="text-slate-600 font-light text-xs sm:text-sm">hello@collabspace.com</div>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3 sm:gap-4 p-4 sm:p-6 border border-slate-200/60 rounded-xl sm:rounded-2xl bg-slate-50/50">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg sm:rounded-xl flex items-center justify-center text-blue-600 flex-shrink-0">
-                  <Phone size={20} sm:size={24} />
-                </div>
-                <div>
-                  <div className="font-semibold text-slate-800 text-sm sm:text-base">Call Us</div>
-                  <div className="text-slate-600 font-light text-xs sm:text-sm">+1 (555) 123-4567</div>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3 sm:gap-4 p-4 sm:p-6 border border-slate-200/60 rounded-xl sm:rounded-2xl bg-slate-50/50">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg sm:rounded-xl flex items-center justify-center text-blue-600 flex-shrink-0">
-                  <MapPin size={20} sm:size={24} />
-                </div>
-                <div>
-                  <div className="font-semibold text-slate-800 text-sm sm:text-base">Visit Us</div>
-                  <div className="text-slate-600 font-light text-xs sm:text-sm">123 Innovation Drive, San Francisco, CA 94107</div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-slate-50/50 border border-slate-200/60 rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8">
-              <form className="space-y-4 sm:space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                  <div>
-                    <label className="block text-slate-700 font-medium mb-2 text-xs sm:text-sm">First Name</label>
-                    <input 
-                      type="text" 
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-200 rounded-lg sm:rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 outline-none text-sm sm:text-base"
-                      placeholder="John"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-700 font-medium mb-2 text-xs sm:text-sm">Last Name</label>
-                    <input 
-                      type="text" 
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-200 rounded-lg sm:rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 outline-none text-sm sm:text-base"
-                      placeholder="Doe"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-slate-700 font-medium mb-2 text-xs sm:text-sm">Email</label>
-                  <input 
-                    type="email" 
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-200 rounded-lg sm:rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 outline-none text-sm sm:text-base"
-                    placeholder="john@company.com"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-700 font-medium mb-2 text-xs sm:text-sm">Message</label>
-                  <textarea 
-                    rows={4}
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-200 rounded-lg sm:rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 outline-none resize-none text-sm sm:text-base"
-                    placeholder="Tell us about your project..."
-                  />
-                </div>
-                <button 
-                  type="submit"
-                  className="w-full px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-xl transform hover:scale-105 transition-all duration-200 rounded-lg sm:rounded-xl shadow-lg font-semibold text-sm sm:text-base border border-blue-500/30"
-                >
-                  Send Message
-                </button>
-              </form>
-            </div>
+          <div>
+            <div className="font-semibold text-slate-800 text-sm sm:text-base">Email Us</div>
+            <div className="text-slate-600 font-light text-xs sm:text-sm">hello@collabspace.com</div>
           </div>
         </div>
-      </section>
+        
+        <div className="flex items-center gap-3 sm:gap-4 p-4 sm:p-6 border border-slate-200/60 rounded-xl sm:rounded-2xl bg-slate-50/50">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg sm:rounded-xl flex items-center justify-center text-blue-600 flex-shrink-0">
+            <Phone size={20} sm:size={24} />
+          </div>
+          <div>
+            <div className="font-semibold text-slate-800 text-sm sm:text-base">Call Us</div>
+            <div className="text-slate-600 font-light text-xs sm:text-sm">+1 (555) 123-4567</div>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-3 sm:gap-4 p-4 sm:p-6 border border-slate-200/60 rounded-xl sm:rounded-2xl bg-slate-50/50">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg sm:rounded-xl flex items-center justify-center text-blue-600 flex-shrink-0">
+            <MapPin size={20} sm:size={24} />
+          </div>
+          <div>
+            <div className="font-semibold text-slate-800 text-sm sm:text-base">Visit Us</div>
+            <div className="text-slate-600 font-light text-xs sm:text-sm">123 Innovation Drive, San Francisco, CA 94107</div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="bg-slate-50/50 border border-slate-200/60 rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8">
+        <form 
+          action= {import.meta.env.VITE_FORM_URL} 
+          method="POST"
+          className="space-y-4 sm:space-y-6"
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+            <div>
+              <label htmlFor="firstName" className="block text-slate-700 font-medium mb-2 text-xs sm:text-sm">
+                First Name
+              </label>
+              <input 
+                type="text" 
+                id="firstName"
+                name="firstName"
+                required
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-200 rounded-lg sm:rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 outline-none text-sm sm:text-base"
+                placeholder="John"
+              />
+            </div>
+            <div>
+              <label htmlFor="lastName" className="block text-slate-700 font-medium mb-2 text-xs sm:text-sm">
+                Last Name
+              </label>
+              <input 
+                type="text" 
+                id="lastName"
+                name="lastName"
+                required
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-200 rounded-lg sm:rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 outline-none text-sm sm:text-base"
+                placeholder="Doe"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <label htmlFor="email" className="block text-slate-700 font-medium mb-2 text-xs sm:text-sm">
+              Email
+            </label>
+            <input 
+              type="email" 
+              id="email"
+              name="email"
+              required
+              className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-200 rounded-lg sm:rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 outline-none text-sm sm:text-base"
+              placeholder="john@company.com"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="message" className="block text-slate-700 font-medium mb-2 text-xs sm:text-sm">
+              Message
+            </label>
+            <textarea 
+              id="message"
+              name="message"
+              rows={4}
+              required
+              className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-200 rounded-lg sm:rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 outline-none resize-none text-sm sm:text-base"
+              placeholder="Tell us about your project..."
+            />
+          </div>
+          
+          <input type="hidden" name="_subject" value="New Contact Form Submission from CollabSpace" />
+          
+          <input type="text" name="_gotcha" className="hidden" />
+          
+          <button 
+            type="submit"
+            className="w-full px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-xl transform hover:scale-105 transition-all duration-200 rounded-lg sm:rounded-xl shadow-lg font-semibold text-sm sm:text-base border border-blue-500/30"
+          >
+            Send Message
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
 
       {/* CTA Section */}
       <section className="py-16 sm:py-20 px-4 sm:px-6 bg-gradient-to-br from-blue-600 to-purple-600">

@@ -420,38 +420,6 @@ const EditMembersList = ({ workspaceId, members, onMembersUpdated, onClose }) =>
 
     return (
         <div className="max-w-6xl mx-auto p-2 sm:p-4 lg:p-6">
-            {/* Header - Responsive */}
-            <div className="flex items-center justify-between mb-4 sm:mb-6 pb-3 sm:pb-4 border-b border-base-300">
-                <div className="flex items-center gap-2 sm:gap-3">
-                    {isMobile && (
-                        <button
-                            onClick={onClose}
-                            className="p-1 hover:bg-base-300 rounded-lg transition-all duration-200 mr-1"
-                        >
-                            <ArrowLeft size={18} className="text-base-content/60" />
-                        </button>
-                    )}
-                    <div className={`p-1.5 sm:p-2 bg-gradient-to-br from-primary to-secondary ${isMobile ? 'rounded-lg' : 'rounded-xl'}`}>
-                        <Edit className="text-white" size={isMobile ? 18 : 24} />
-                    </div>
-                    <div>
-                        <h2 className={`font-bold text-base-content ${isMobile ? 'text-xl' : 'text-2xl'}`}>Manage Team</h2>
-                        <p className="text-base-content/60 text-xs sm:text-sm">
-                            {members.length} member{members.length !== 1 ? 's' : ''} in workspace
-                        </p>
-                    </div>
-                </div>
-                {!isMobile && onClose && (
-                    <button
-                        onClick={onClose}
-                        className="p-1 hover:bg-base-300 rounded-lg transition-all duration-200"
-                    >
-                        <X size={20} className="text-base-content/60" />
-                    </button>
-                )}
-            </div>
-
-            {/* Search and Filters - Responsive */}
             <div className="mb-4 sm:mb-6 space-y-2 sm:space-y-0 sm:flex sm:gap-3">
                 <div className="flex-1 relative">
                     <Search className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 text-base-content/50" size={isMobile ? 16 : 20} />
@@ -463,8 +431,6 @@ const EditMembersList = ({ workspaceId, members, onMembersUpdated, onClose }) =>
                         className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-3 border border-base-300 rounded-lg sm:rounded-xl bg-base-100 text-base-content placeholder-base-content/50 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                     />
                 </div>
-                
-                {/* Status Filter - Mobile Dropdown / Desktop Buttons */}
                 {isMobile ? (
                     <select
                         value={statusFilter}
@@ -613,7 +579,7 @@ const EditMembersList = ({ workspaceId, members, onMembersUpdated, onClose }) =>
                         onClose={() => setSelectedMember(null)}
                     />
                 ) : (
-                    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4">
+                    <div className="z-50 flex items-center justify-center p-2 sm:p-4">
                         <div className="bg-base-100 rounded-xl sm:rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-in zoom-in duration-300">
                             <EditMemberForm
                                 workspaceId={workspaceId}

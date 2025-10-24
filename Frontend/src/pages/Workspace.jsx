@@ -557,8 +557,16 @@ export default function Workspace() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-base-100 flex">
+return (
+  <div className="min-h-screen bg-base-100 flex flex-col">
+    {/* Navbar - Always at the top */}
+    <Navbar
+      onMenuToggle={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+      showMobileMenu={true}
+    />
+
+    {/* Main Content Area with Sidebar */}
+    <div className="flex-1 flex min-h-0">
       {/* Mobile Sidebar Overlay */}
       {mobileSidebarOpen && (
         <div
@@ -569,27 +577,20 @@ export default function Workspace() {
 
       {/* Sidebar */}
       <div className={`
-        fixed lg:static inset-y-0 left-0 z-50
+        fixed lg:static inset-y-0 left-0 z-40
         bg-base-200 border-r border-base-300 
         transition-all duration-300 ease-in-out
         flex flex-col
         ${sidebarCollapsed ? 'w-14' : 'w-64'}
         ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        mt-0 lg:mt-0
       `}>
-        {/* Sidebar Header */}
+        {/* Sidebar Header (commented out as per your code) */}
         <div className="flex items-center justify-between p-3 md:p-4 border-b border-base-300">
           {!sidebarCollapsed && currentWorkspace && (
             <div className="flex items-center gap-2 min-w-0">
               <div className="w-6 h-6 md:w-8 md:h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center flex-shrink-0">
                 <LayoutDashboard className="text-primary-content" size={14} md:size={18} />
-              </div>
-              <div className="min-w-0">
-                <p className="font-semibold text-base-content truncate text-xs md:text-sm">
-                  {currentWorkspace.name}
-                </p>
-                <p className="text-xs text-base-content/60 truncate">
-                  {currentWorkspace.members?.length || 0} members
-                </p>
               </div>
             </div>
           )}
@@ -601,8 +602,7 @@ export default function Workspace() {
           </button>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 p-1 md:p-2 space-y-1">
+        <nav className="flex-1 p-1 md:p-2 space-y-1 overflow-y-auto">
           {navigationItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentView === item.id;
@@ -623,7 +623,7 @@ export default function Workspace() {
                   }
                 `}
               >
-                <Icon size={18} md:size={20} className="flex-shrink-0" />
+                <Icon size={18} className="flex-shrink-0" />
                 {!sidebarCollapsed && (
                   <span className="font-medium truncate text-sm md:text-base">{item.label}</span>
                 )}
@@ -638,13 +638,8 @@ export default function Workspace() {
         </nav>
       </div>
 
-      {/* Main Content Area */}
+      {/* Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        <Navbar
-          onMenuToggle={() => setMobileSidebarOpen(!mobileSidebarOpen)}
-          showMobileMenu={true}
-        />
-
         <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 overflow-y-auto">
           {workspaceLoading && currentView === 'workspace' ? (
             <div className="flex items-center justify-center h-48 md:h-64">
@@ -679,90 +674,92 @@ export default function Workspace() {
             </div>
           )}
         </main>
-
-        <Footer />
       </div>
-
-      {/* Mobile Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-base-200 border-t border-base-300 p-2 flex justify-around lg:hidden z-30">
-        {navigationItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = currentView === item.id;
-
-          return (
-            <button
-              key={item.id}
-              onClick={() => setCurrentView(item.id)}
-              className={`
-                flex flex-col items-center p-2 rounded-lg transition-all duration-200
-                ${isActive
-                  ? 'text-primary bg-primary/10'
-                  : 'text-base-content/60'
-                }
-              `}
-            >
-              <Icon size={20} />
-              <span className="text-xs mt-1">{item.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Modals */}
-      <MobileModal
-        isOpen={showCreateDocumentForm}
-        onClose={() => setShowCreateDocumentForm(false)}
-        title="Create Document"
-        position="bottom"
-      >
-        <DocumentForm
-          onClose={() => setShowCreateDocumentForm(false)}
-          onSubmit={handleCreateDocument}
-        />
-      </MobileModal>
-
-      <MobileModal
-        isOpen={showDocumentModal && selectedDocumentId}
-        onClose={closeDocumentModal}
-        title={documentModalMode === 'edit' ? 'Edit Document' : 'View Document'}
-        position="bottom"
-        size="full"
-      >
-        {documentModalMode === 'edit' ? (
-          <DocumentForm
-            initialData={documents.find(doc => doc._id === selectedDocumentId)}
-            onClose={closeDocumentModal}
-            onSubmit={(data, files) => handleUpdateDocument(selectedDocumentId, data, files)}
-          />
-        ) : (
-          <div className="h-full flex flex-col">
-            <Document
-              documentId={selectedDocumentId}
-              onClose={closeDocumentModal}
-              onUpdate={(updatedDoc) => {
-                dispatch(updateDocumentInList(updatedDoc));
-              }}
-            />
-          </div>
-        )}
-      </MobileModal>
-
-      <MobileModal
-        isOpen={showAddMemberForm}
-        onClose={() => setShowAddMemberForm(false)}
-        title="Add Team Member"
-        position="bottom"
-      >
-        <AddMemberForm
-          workspaceId={id}
-          onSuccess={() => {
-            setShowAddMemberForm(false);
-            refreshWorkspaceData();
-          }}
-        />
-      </MobileModal>
     </div>
-  );
+
+    {/* Footer - Always at the bottom */}
+    <Footer />
+
+    {/* Mobile Bottom Navigation */}
+    <div className="fixed bottom-0 left-0 right-0 bg-base-200 border-t border-base-300 p-2 flex justify-around lg:hidden z-30">
+      {navigationItems.map((item) => {
+        const Icon = item.icon;
+        const isActive = currentView === item.id;
+
+        return (
+          <button
+            key={item.id}
+            onClick={() => setCurrentView(item.id)}
+            className={`
+              flex flex-col items-center p-2 rounded-lg transition-all duration-200
+              ${isActive
+                ? 'text-primary bg-primary/10'
+                : 'text-base-content/60'
+              }
+            `}
+          >
+            <Icon size={20} />
+            <span className="text-xs mt-1">{item.label}</span>
+          </button>
+        );
+      })}
+    </div>
+
+    {/* Modals */}
+    <MobileModal
+      isOpen={showCreateDocumentForm}
+      onClose={() => setShowCreateDocumentForm(false)}
+      title="Create Document"
+      position="bottom"
+    >
+      <DocumentForm
+        onClose={() => setShowCreateDocumentForm(false)}
+        onSubmit={handleCreateDocument}
+      />
+    </MobileModal>
+
+    <MobileModal
+      isOpen={showDocumentModal && selectedDocumentId}
+      onClose={closeDocumentModal}
+      title={documentModalMode === 'edit' ? 'Edit Document' : 'View Document'}
+      position="bottom"
+      size="full"
+    >
+      {documentModalMode === 'edit' ? (
+        <DocumentForm
+          initialData={documents.find(doc => doc._id === selectedDocumentId)}
+          onClose={closeDocumentModal}
+          onSubmit={(data, files) => handleUpdateDocument(selectedDocumentId, data, files)}
+        />
+      ) : (
+        <div className="h-full flex flex-col">
+          <Document
+            documentId={selectedDocumentId}
+            onClose={closeDocumentModal}
+            onUpdate={(updatedDoc) => {
+              dispatch(updateDocumentInList(updatedDoc));
+            }}
+          />
+        </div>
+      )}
+    </MobileModal>
+
+    <MobileModal
+      isOpen={showAddMemberForm}
+      onClose={() => setShowAddMemberForm(false)}
+      title="Add Team Member"
+      position="bottom"
+    >
+      <AddMemberForm
+        workspaceId={id}
+        onSuccess={() => {
+          setShowAddMemberForm(false);
+          refreshWorkspaceData();
+        }}
+      />
+    </MobileModal>
+  </div>
+);
 }
 
 const DocumentCard = ({ doc, onView, onEdit, canEdit }) => {

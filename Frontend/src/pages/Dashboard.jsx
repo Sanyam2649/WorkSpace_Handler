@@ -131,7 +131,7 @@ export default function Dashboard() {
                         : 'opacity-0 translate-x-full'
                   }`}
                 >
-                  <div className="p-3 sm:p-4 lg:p-6 h-full overflow-hidden">
+                  <div className="p-3 sm:p-4 lg:p-6 h-full overflow-y-auto">
                     {React.cloneElement(slide.component, { 
                       // Pass mobile state if needed by child components
                       isMobile: window.innerWidth < 768 

@@ -5,6 +5,71 @@ import { Edit, Plus, Search, SquarePen, X, Users, FileText, Activity, Calendar, 
 import AddMemberForm from "../components/AddMemberForm";
 import EditMembersList from "../components/EditMemberForm";
 
+// Enhanced Modal Component
+const Modal = ({ isOpen, onClose, children, title, size = 'md', showCloseButton = true }) => {
+  if (!isOpen) return null;
+
+  const sizeClasses = {
+    sm: 'max-w-md mx-2',
+    md: 'max-w-2xl mx-2',
+    lg: 'max-w-4xl mx-2',
+    xl: 'max-w-6xl mx-2',
+    full: 'max-w-full mx-2'
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-300">
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300"
+        onClick={onClose}
+      />
+      
+      {/* Modal Container */}
+      <div 
+        className={`relative bg-base-100 rounded-xl sm:rounded-2xl lg:rounded-3xl shadow-2xl border border-base-300 w-full ${sizeClasses[size]} max-h-[94vh] overflow-hidden animate-in zoom-in duration-300 scale-95`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        {title && (
+          <div className="flex items-center justify-between p-4 sm:p-6 lg:p-8 border-b border-base-300 bg-base-200">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-primary to-secondary rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+                <FileText className="text-primary-content" size={16} sm:size={20} />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-base-content leading-tight truncate">
+                  {title}
+                </h2>
+                <p className="text-base-content/60 text-xs sm:text-sm mt-0.5 hidden sm:block">
+                  {size === 'sm' ? 'Quick action' : size === 'md' ? 'Standard view' : 'Detailed view'}
+                </p>
+              </div>
+            </div>
+            
+            {showCloseButton && (
+              <button
+                onClick={onClose}
+                className="btn btn-ghost btn-circle btn-sm hover:bg-error/20 hover:text-error border border-transparent hover:border-error/30 transition-all duration-200 flex-shrink-0"
+                aria-label="Close modal"
+              >
+                <X size={16} sm:size={20} className="text-base-content/70" />
+              </button>
+            )}
+          </div>
+        )}
+        
+        {/* Content Area */}
+        <div className="overflow-y-auto max-h-[calc(94vh-80px)] sm:max-h-[calc(94vh-120px)]">
+          <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
+            {children}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function WorkspaceDetail({workspaceId}) {
   
   const dispatch = useDispatch();
@@ -80,7 +145,6 @@ export default function WorkspaceDetail({workspaceId}) {
 
           {/* Stats Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
-            {/* All cards remain the same as above */}
             {/* Team Members */}
             <div className="bg-primary text-primary-content p-3 sm:p-4 lg:p-6 rounded-lg sm:rounded-xl shadow-lg">
               <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{currentWorkspace.members?.length || 0}</div>
@@ -262,45 +326,38 @@ export default function WorkspaceDetail({workspaceId}) {
         </div>
 
         {/* Add Member Modal */}
-        {openAddMemberForm && (
-          <Modal onClose={() => setOpenAddMemberForm(false)}>
-            <AddMemberForm workspaceId={id} onClose={() => setOpenAddMemberForm(false)} />
-          </Modal>
-        )}
+        <Modal 
+          isOpen={openAddMemberForm}
+          onClose={() => setOpenAddMemberForm(false)}
+          title="Add Team Member"
+          size="md"
+          showCloseButton={true}
+        >
+          <AddMemberForm 
+            workspaceId={id} 
+            onClose={() => setOpenAddMemberForm(false)} 
+          />
+        </Modal>
 
         {/* Edit Members Modal */}
-        {openEditMemberForm && (
-          <Modal onClose={() => setOpenEditMemberForm(false)}>
-            <EditMembersList 
-              workspaceId={id}
-              members={currentWorkspace.members}
-              onMembersUpdated={() => {
-                dispatch(fetchWorkspace(id));
-                setOpenEditMemberForm(false);
-              }}
-              onClose={() => setOpenEditMemberForm(false)}
-            />
-          </Modal>
-        )}
+        <Modal 
+          isOpen={openEditMemberForm}
+          onClose={() => setOpenEditMemberForm(false)}
+          title="Manage Team Members"
+          size="lg"
+          showCloseButton={true}
+        >
+          <EditMembersList 
+            workspaceId={id}
+            members={currentWorkspace.members}
+            onMembersUpdated={() => {
+              dispatch(fetchWorkspace(id));
+              setOpenEditMemberForm(false);
+            }}
+            onClose={() => setOpenEditMemberForm(false)}
+          />
+        </Modal>
       </main>
     </div>
   );
 }
-
-// Responsive Modal Component
-const Modal = ({ children, onClose }) => (
-  <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 lg:p-6">
-    <div className="bg-base-100 rounded-lg sm:rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden relative mx-2 sm:mx-4">
-      <button
-        aria-label="Close modal"
-        className="absolute top-2 right-2 sm:top-4 sm:right-4 z-10 p-1 sm:p-2 bg-base-200 hover:bg-base-300 rounded-full transition-colors"
-        onClick={onClose}
-      >
-        <X size={16} className="sm:w-5 sm:h-5 text-base-content" />
-      </button>
-      <div className="max-h-[90vh] overflow-y-auto p-4 sm:p-6">
-        {children}
-      </div>
-    </div>
-  </div>
-);

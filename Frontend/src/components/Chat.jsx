@@ -498,13 +498,13 @@ const Chat = ({ isOpen, onClose, workspaceId, chatType = 'workspace' }) => {
                   </div>
                   
                   {/* Enhanced Close Button - Always visible when chat is active */}
-                  <button
+                  {/* <button
                     onClick={handleClose}
                     className="p-2 sm:p-3 hover:bg-error/10 rounded-xl transition-all duration-200 group text-error hover:text-error/80"
                     title="Close chat"
                   >
                     <X size={18} className="sm:w-6 sm:h-6 group-hover:scale-110 transition-transform" />
-                  </button>
+                  </button> */}
                 </div>
               </div>
 

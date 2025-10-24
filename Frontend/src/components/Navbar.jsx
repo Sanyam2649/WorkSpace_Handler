@@ -55,6 +55,14 @@ export default function Navbar() {
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [navigate]);
+  
+    const getInitials = (firstName, lastName) => {
+    return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
+  };
+
+  const getAvatarUrl = () => {
+    return user?.avatar?.url || null;
+  };
 
   return (
     <nav className="w-full bg-base-300/95 backdrop-blur-md shadow-lg border-b border-base-200 sticky top-0 z-50">
@@ -66,16 +74,23 @@ export default function Navbar() {
             className="flex items-center space-x-3 group transition-all duration-200 hover:bg-base-200/50 rounded-xl lg:rounded-2xl p-2"
           >
             <div className="relative">
-              <img
-                src={user?.avatar?.url || "/default-avatar.png"}
-                alt={user?.firstName || "User"}
-                className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-full object-cover border-2 border-primary/20 shadow-md group-hover:border-primary/40 transition-colors duration-200"
-              />
+
+              <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-full object-cover bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-primary-content text-xl sm:text-2xl font-bold border-4 border-base-100 shadow-lg">
+                {getAvatarUrl() ? (
+                  <img
+                    src={getAvatarUrl()}
+                    alt="Profile"
+                    className="w-full h-full rounded-full object-cover"
+                  />
+                ) : (
+                  getInitials(user?.firstName, user?.lastName)
+                )}
+              </div>
               <div className="absolute -bottom-1 -right-1 w-3 h-3 lg:w-4 lg:h-4 bg-success rounded-full border-2 border-base-300"></div>
             </div>
             <div className="hidden sm:flex flex-col">
               <span className="text-base-content text-sm lg:text-base leading-tight font-semibold">
-                {user ? `${user.firstName} ${user.lastName}` : "Guest"}
+                {user ? `${user?.firstName} ${user?.lastName}` : "Guest"}
               </span>
               {user && (
                 <span className="text-base-content/70 text-xs lg:text-sm">
