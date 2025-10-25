@@ -4,33 +4,33 @@ const Workspace = require("../models/workspace");
 const Document = require("../models/document");
 const ChatRoom = require("../models/chatModel");
 const User = require("../models/user");
+const logger = require("../config/logger");
 
 const router = express.Router();
 router.use(authMiddleware);
 
-// Helper function to calculate date ranges
 const getDateRange = (timeRange) => {
   const now = new Date();
   let startDate, days, groupBy;
   
   switch (timeRange) {
     case 'daily':
-      startDate = new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000); // Last 7 days
+      startDate = new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000); 
       days = 7;
       groupBy = 'day';
       break;
     case 'weekly':
-      startDate = new Date(now.getTime() - 6 * 7 * 24 * 60 * 60 * 1000); // Last 7 weeks
+      startDate = new Date(now.getTime() - 6 * 7 * 24 * 60 * 60 * 1000); 
       days = 7;
       groupBy = 'week';
       break;
     case 'monthly':
-      startDate = new Date(now.getTime() - 11 * 30 * 24 * 60 * 60 * 1000); // Last 12 months
+      startDate = new Date(now.getTime() - 11 * 30 * 24 * 60 * 60 * 1000); 
       days = 12;
       groupBy = 'month';
       break;
     case 'yearly':
-      startDate = new Date(now.getTime() - 4 * 365 * 24 * 60 * 60 * 1000); // Last 5 years
+      startDate = new Date(now.getTime() - 4 * 365 * 24 * 60 * 60 * 1000); 
       days = 5;
       groupBy = 'year';
       break;
@@ -43,19 +43,18 @@ const getDateRange = (timeRange) => {
   return { startDate, days, groupBy };
 };
 
-// Helper function to format date based on groupBy
 const formatDate = (date, groupBy) => {
   switch (groupBy) {
     case 'day':
-      return date.toISOString().split('T')[0]; // YYYY-MM-DD
+      return date.toISOString().split('T')[0]; 
     case 'week':
       const weekStart = new Date(date);
-      weekStart.setDate(date.getDate() - date.getDay()); // Start of week (Sunday)
+      weekStart.setDate(date.getDate() - date.getDay()); 
       return `Week of ${weekStart.toISOString().split('T')[0]}`;
     case 'month':
-      return date.toISOString().substring(0, 7); // YYYY-MM
+      return date.toISOString().substring(0, 7); 
     case 'year':
-      return date.getFullYear().toString(); // YYYY
+      return date.getFullYear().toString();
     default:
       return date.toISOString().split('T')[0];
   }
@@ -66,6 +65,8 @@ router.get("/overview", async (req, res) => {
   try {
     const userId = req.user.id;
     const { timeRange = 'monthly' } = req.query;
+    
+    logger.info(`Fetching analytics overview for user ${userId}, timeRange: ${timeRange}`);
     
     const { startDate } = getDateRange(timeRange);
 
@@ -122,6 +123,8 @@ router.get("/overview", async (req, res) => {
     const workspaceGrowth = previousWorkspaces > 0 ? 
       Math.round(((totalWorkspaces - previousWorkspaces) / previousWorkspaces) * 100) : 100;
 
+    logger.info(`Analytics overview fetched successfully for user ${userId}`);
+    
     res.json({
       workspaceStats: {
         total: totalWorkspaces,
@@ -142,7 +145,7 @@ router.get("/overview", async (req, res) => {
       timeRange
     });
   } catch (err) {
-    console.error("Analytics overview error:", err);
+    logger.error("Analytics overview error:", { error: err.message, userId: req.user?.id, stack: err.stack });
     res.status(500).json({ message: "Failed to fetch analytics overview" });
   }
 });
@@ -152,6 +155,8 @@ router.get("/activity", async (req, res) => {
   try {
     const userId = req.user.id;
     const { timeRange = 'monthly', type = 'all' } = req.query;
+    
+    logger.info(`Fetching activity data for user ${userId}, timeRange: ${timeRange}, type: ${type}`);
     
     const { startDate, days, groupBy } = getDateRange(timeRange);
     const activityData = [];
@@ -234,13 +239,15 @@ router.get("/activity", async (req, res) => {
       activityData.push(periodData);
     }
 
+    logger.info(`Activity data fetched successfully for user ${userId}`);
+    
     res.json({
       data: activityData,
       timeRange,
       groupBy
     });
   } catch (err) {
-    console.error("Analytics activity error:", err);
+    logger.error("Analytics activity error:", { error: err.message, userId: req.user?.id, stack: err.stack });
     res.status(500).json({ message: "Failed to fetch activity data" });
   }
 });
@@ -250,6 +257,8 @@ router.get("/user-activity", async (req, res) => {
   try {
     const userId = req.user.id;
     const { timeRange = 'daily' } = req.query;
+    
+    logger.info(`Fetching user activity by hour for user ${userId}, timeRange: ${timeRange}`);
     
     const { startDate } = getDateRange(timeRange);
     const hourlyActivity = [];
@@ -299,6 +308,8 @@ router.get("/user-activity", async (req, res) => {
       });
     }
 
+    logger.info(`User activity by hour fetched successfully for user ${userId}`);
+    
     res.json({
       data: hourlyActivity,
       timeRange,
@@ -308,7 +319,7 @@ router.get("/user-activity", async (req, res) => {
       }
     });
   } catch (err) {
-    console.error("User activity error:", err);
+    logger.error("User activity error:", { error: err.message, userId: req.user?.id, stack: err.stack });
     res.status(500).json({ message: "Failed to fetch user activity" });
   }
 });
@@ -319,6 +330,8 @@ router.get("/top-workspaces", async (req, res) => {
     const userId = req.user.id;
     const { limit = 10, timeRange = 'monthly' } = req.query;
 
+    logger.info(`Fetching top workspaces for user ${userId}, limit: ${limit}, timeRange: ${timeRange}`);
+    
     const { startDate } = getDateRange(timeRange);
 
     const workspaces = await Workspace.find({
@@ -361,12 +374,14 @@ router.get("/top-workspaces", async (req, res) => {
     // Sort by activity count
     workspaceStats.sort((a, b) => b.activityCount - a.activityCount);
 
+    logger.info(`Top workspaces fetched successfully for user ${userId}`);
+    
     res.json({
       data: workspaceStats,
       timeRange
     });
   } catch (err) {
-    console.error("Top workspaces error:", err);
+    logger.error("Top workspaces error:", { error: err.message, userId: req.user?.id, stack: err.stack });
     res.status(500).json({ message: "Failed to fetch top workspaces" });
   }
 });
@@ -377,6 +392,8 @@ router.get("/recent-documents", async (req, res) => {
     const userId = req.user.id;
     const { limit = 10, timeRange = 'monthly' } = req.query;
 
+    logger.info(`Fetching recent documents for user ${userId}, limit: ${limit}, timeRange: ${timeRange}`);
+    
     const { startDate } = getDateRange(timeRange);
 
     const userWorkspaces = await Workspace.find({
@@ -409,12 +426,14 @@ router.get("/recent-documents", async (req, res) => {
       lastModified: doc.updatedAt
     }));
 
+    logger.info(`Recent documents fetched successfully for user ${userId}`);
+    
     res.json({
       data: formattedDocuments,
       timeRange
     });
   } catch (err) {
-    console.error("Recent documents error:", err);
+    logger.error("Recent documents error:", { error: err.message, userId: req.user?.id, stack: err.stack });
     res.status(500).json({ message: "Failed to fetch recent documents" });
   }
 });
@@ -425,6 +444,8 @@ router.get("/export", async (req, res) => {
     const userId = req.user.id;
     const { format = 'json', timeRange = 'monthly' } = req.query;
 
+    logger.info(`Exporting analytics data for user ${userId}, format: ${format}, timeRange: ${timeRange}`);
+    
     // Get all analytics data in parallel
     const [overview, activity, userActivity, topWorkspaces, recentDocuments] = await Promise.all([
       Workspace.find({
@@ -477,12 +498,15 @@ router.get("/export", async (req, res) => {
       
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', `attachment; filename="analytics-${timeRange}-${new Date().toISOString().split('T')[0]}.csv"`);
+      
+      logger.info(`Analytics data exported as CSV for user ${userId}`);
       res.send(csv);
     } else {
+      logger.info(`Analytics data exported as JSON for user ${userId}`);
       res.json(exportData);
     }
   } catch (err) {
-    console.error("Export analytics error:", err);
+    logger.error("Export analytics error:", { error: err.message, userId: req.user?.id, stack: err.stack });
     res.status(500).json({ message: "Failed to export analytics data" });
   }
 });
@@ -496,6 +520,8 @@ router.get("/workspace/:workspaceId", async (req, res) => {
     const { workspaceId } = req.params;
     const { timeRange = 'monthly' } = req.query;
 
+    logger.info(`Fetching workspace analytics for user ${userId}, workspace: ${workspaceId}, timeRange: ${timeRange}`);
+    
     // Verify user has access to this workspace
     const workspace = await Workspace.findOne({
       _id: workspaceId,
@@ -503,6 +529,7 @@ router.get("/workspace/:workspaceId", async (req, res) => {
     });
 
     if (!workspace) {
+      logger.warn(`Workspace access denied or not found for user ${userId}, workspace: ${workspaceId}`);
       return res.status(404).json({ message: "Workspace not found or access denied" });
     }
 
@@ -558,6 +585,8 @@ router.get("/workspace/:workspaceId", async (req, res) => {
       })
     );
 
+    logger.info(`Workspace analytics fetched successfully for user ${userId}, workspace: ${workspaceId}`);
+    
     res.json({
       workspace: {
         id: workspace._id,
@@ -602,7 +631,7 @@ router.get("/workspace/:workspaceId", async (req, res) => {
       ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 20)
     });
   } catch (err) {
-    console.error("Workspace analytics error:", err);
+    logger.error("Workspace analytics error:", { error: err.message, userId: req.user?.id, workspaceId: req.params.workspaceId, stack: err.stack });
     res.status(500).json({ message: "Failed to fetch workspace analytics" });
   }
 });
@@ -613,6 +642,8 @@ router.get("/user-engagement", async (req, res) => {
     const userId = req.user.id;
     const { timeRange = 'monthly' } = req.query;
 
+    logger.info(`Fetching user engagement metrics for user ${userId}, timeRange: ${timeRange}`);
+    
     const { startDate } = getDateRange(timeRange);
 
     // Get user's workspaces
@@ -666,6 +697,8 @@ router.get("/user-engagement", async (req, res) => {
       ((activeDays[0]?.uniqueDays || 0) * 3)
     );
 
+    logger.info(`User engagement metrics fetched successfully for user ${userId}`);
+    
     res.json({
       timeRange,
       metrics: {
@@ -678,7 +711,7 @@ router.get("/user-engagement", async (req, res) => {
       dailyBreakdown: await getDailyEngagementBreakdown(userId, workspaceIds, startDate)
     });
   } catch (err) {
-    console.error("User engagement error:", err);
+    logger.error("User engagement error:", { error: err.message, userId: req.user?.id, stack: err.stack });
     res.status(500).json({ message: "Failed to fetch user engagement metrics" });
   }
 });

@@ -53,7 +53,7 @@ const Modal = ({ isOpen, onClose, children, title, size = 'md', showCloseButton 
                 className="btn btn-ghost btn-circle btn-sm hover:bg-error/20 hover:text-error border border-transparent hover:border-error/30 transition-all duration-200 flex-shrink-0"
                 aria-label="Close modal"
               >
-                <X size={16} sm:size={20} className="text-base-content/70" />
+                <X size={24} sm:size={20} className="text-base-content/70" />
               </button>
             )}
           </div>

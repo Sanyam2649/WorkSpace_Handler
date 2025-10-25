@@ -1,8 +1,11 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {setUser} from '../reducer/slices/authSlice';
+import { useDispatch } from 'react-redux';
 
 const OAuthRedirectHandler = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -28,6 +31,8 @@ const OAuthRedirectHandler = () => {
         sessionStorage.setItem('accessToken', accessToken);
         sessionStorage.setItem('refreshToken', refreshToken);
         sessionStorage.setItem('user', JSON.stringify(user));
+        
+        dispatch(setUser(user));
 
         console.log('✅ Tokens and user info stored in sessionStorage.');
         navigate('/dashboard');

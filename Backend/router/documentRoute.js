@@ -7,13 +7,13 @@ const cloudinary = require("../config/cloudClient");
 const streamifier = require("streamifier");
 const requireDocumentRole = require("../middleware/documentRole");
 const User = require("../models/user");
+const logger = require("../config/logger"); // Add this line
 
 const router = express.Router();
 router.use(authMiddleware);
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
-
 
 router.post("/create", upload.array("files"), async (req, res) => {
   try {
@@ -27,11 +27,13 @@ router.post("/create", upload.array("files"), async (req, res) => {
     } = req.body;
 
     if (!workspaceId) {
+      logger.warn("Document creation - workspaceId missing", { userId: req.user.id });
       return res.status(400).json({ message: "workspaceId is required" });
     }
 
     const workspace = await Workspace.findById(workspaceId);
     if (!workspace) {
+      logger.warn("Document creation - workspace not found", { userId: req.user.id, workspaceId });
       return res.status(404).json({ message: "Workspace not found" });
     }
 
@@ -66,6 +68,11 @@ router.post("/create", upload.array("files"), async (req, res) => {
           resourceType : result.resource_type,
         });
       }
+      logger.info(`Files uploaded to Cloudinary`, { 
+        userId: req.user.id, 
+        workspaceId, 
+        fileCount: req.files.length 
+      });
     }
 
     // --- Permissions ---
@@ -98,12 +105,24 @@ router.post("/create", upload.array("files"), async (req, res) => {
     workspace.documents.push(doc._id);
     await workspace.save();
 
+    logger.info("Document created successfully", { 
+      userId: req.user.id, 
+      documentId: doc._id, 
+      workspaceId,
+      fileCount: uploadedFiles.length 
+    });
+    
     res.status(201).json({
       message: "Document created successfully",
       document: doc,
     });
   } catch (err) {
-    console.error("❌ Document creation error:", err);
+    logger.error("Document creation error", { 
+      error: err.message, 
+      stack: err.stack, 
+      userId: req.user.id, 
+      workspaceId: req.body.workspaceId 
+    });
     res.status(500).json({ message: err.message });
   }
 });
@@ -114,6 +133,10 @@ router.get("/:documentId", authMiddleware, async (req, res) => {
       .populate("permissions.user sharedWith.users createdBy versions.createdBy");
 
     if (!doc) {
+      logger.warn("Document not found", { 
+        userId: req.user.id, 
+        documentId: req.params.documentId 
+      });
       return res.status(404).json({ message: "Document not found" });
     }
 
@@ -126,16 +149,29 @@ router.get("/:documentId", authMiddleware, async (req, res) => {
     );
 
     if (!hasPermission && !isSharedUser) {
+      logger.warn("Document access denied", { 
+        userId: req.user.id, 
+        documentId: req.params.documentId 
+      });
       return res.status(403).json({ message: "You do not have access to this document" });
     }
 
+    logger.info("Document retrieved successfully", { 
+      userId: req.user.id, 
+      documentId: doc._id 
+    });
+    
     res.json(doc);
   } catch (err) {
-    console.error(err);
+    logger.error("Document retrieval error", { 
+      error: err.message, 
+      stack: err.stack, 
+      userId: req.user.id, 
+      documentId: req.params.documentId 
+    });
     res.status(500).json({ message: err.message });
   }
 });
-
 
 router.put(
   "/update/:documentId",
@@ -147,6 +183,10 @@ router.put(
       const doc = await Document.findById(req.params.documentId);
 
       if (!doc) {
+        logger.warn("Document update - document not found", { 
+          userId: req.user.id, 
+          documentId: req.params.documentId 
+        });
         return res.status(404).json({
           message: "No Document Found",
           success: false,
@@ -160,8 +200,14 @@ router.put(
       // --- File Upload Handling ---
       if (req.files && req.files.length > 0) {
         const workspace = await Workspace.findById(doc.workspace);
-        if (!workspace)
+        if (!workspace) {
+          logger.warn("Document update - workspace not found", { 
+            userId: req.user.id, 
+            documentId: doc._id, 
+            workspaceId: doc.workspace 
+          });
           return res.status(404).json({ message: "Workspace not found" });
+        }
 
         const workspaceSlug = workspace.slug;
 
@@ -181,13 +227,17 @@ router.put(
           });
 
         // --- Upload each file (skip duplicates) ---
+        let uploadedCount = 0;
         for (const file of req.files) {
           const isDuplicate = doc.files.some(
             (f) => f.originalName === file.originalname
           );
 
           if (isDuplicate) {
-            console.log(`⚠️ Skipping duplicate file: ${file.originalname}`);
+            logger.warn(`Skipping duplicate file: ${file.originalname}`, { 
+              userId: req.user.id, 
+              documentId: doc._id 
+            });
             continue; // Skip upload and insertion
           }
 
@@ -198,6 +248,15 @@ router.put(
             mimetype: file.mimetype,
             publicId: result.public_id,
             resourceType : result.resource_type
+          });
+          uploadedCount++;
+        }
+        
+        if (uploadedCount > 0) {
+          logger.info(`Files uploaded during document update`, { 
+            userId: req.user.id, 
+            documentId: doc._id, 
+            uploadedCount 
           });
         }
       }
@@ -210,12 +269,22 @@ router.put(
 
       await doc.save();
 
+      logger.info("Document updated successfully", { 
+        userId: req.user.id, 
+        documentId: doc._id 
+      });
+      
       res.json({
         message: "✅ Document updated successfully",
         document: doc,
       });
     } catch (err) {
-      console.error("❌ Document update error:", err);
+      logger.error("Document update error", { 
+        error: err.message, 
+        stack: err.stack, 
+        userId: req.user.id, 
+        documentId: req.params.documentId 
+      });
       res.status(500).json({ message: err.message });
     }
   }
@@ -227,15 +296,35 @@ router.post("/:documentId/rollback", requireDocumentRole(["Admin"]), async (req,
     const doc = req.document;
 
     const version = doc.versions[versionIndex];
-    if (!version) return res.status(400).json({ message: "Invalid version index" });
+    if (!version) {
+      logger.warn("Document rollback - invalid version index", { 
+        userId: req.user.id, 
+        documentId: doc._id, 
+        versionIndex 
+      });
+      return res.status(400).json({ message: "Invalid version index" });
+    }
 
     doc.title = version.title;
     doc.content = version.content;
     doc.versions.push({ title: version.title, content: version.content, createdBy: req.user.id });
 
     await doc.save();
+    
+    logger.info("Document rolled back successfully", { 
+      userId: req.user.id, 
+      documentId: doc._id, 
+      versionIndex 
+    });
+    
     res.json(doc);
   } catch (err) {
+    logger.error("Document rollback error", { 
+      error: err.message, 
+      stack: err.stack, 
+      userId: req.user.id, 
+      documentId: req.params.documentId 
+    });
     res.status(500).json({ message: err.message });
   }
 });
@@ -247,31 +336,58 @@ router.delete(
     try {
       const doc = await Document.findById(req.params.documentId);
       if (!doc) {
+        logger.warn("Document deletion - document not found", { 
+          userId: req.user.id, 
+          documentId: req.params.documentId 
+        });
         return res.status(404).json({ message: "Document not found" });
       }
 
       // --- Delete all files from Cloudinary ---
       if (doc.files && doc.files.length > 0) {
+        let deletedCount = 0;
         for (const file of doc.files) {
           if (file.publicId) {
             try {
               const resourceType = file.resourceType || "raw"; 
               await cloudinary.uploader.destroy(file.publicId, { resource_type: resourceType});
-              console.log(`Deleted file from Cloudinary: ${file.originalName}`);
+              deletedCount++;
             } catch (err) {
-              console.warn(`Failed to remove file ${file.originalName}: ${err.message}`);
+              logger.warn(`Failed to remove file from Cloudinary`, { 
+                error: err.message, 
+                fileName: file.originalName, 
+                publicId: file.publicId 
+              });
             }
           }
         }
+        logger.info(`Cloudinary files deleted`, { 
+          userId: req.user.id, 
+          documentId: doc._id, 
+          deletedCount, 
+          totalFiles: doc.files.length 
+        });
       }
+      
     await Workspace.findByIdAndUpdate(doc.workspace, {
         $pull: { documents: doc._id }
       });
+      
       await Document.findByIdAndDelete(req.params.documentId);
 
+      logger.info("Document deleted successfully", { 
+        userId: req.user.id, 
+        documentId: req.params.documentId 
+      });
+      
       res.json({ message: "Document deleted successfully" });
     } catch (err) {
-      console.error("❌ Document deletion error:", err);
+      logger.error("Document deletion error", { 
+        error: err.message, 
+        stack: err.stack, 
+        userId: req.user.id, 
+        documentId: req.params.documentId 
+      });
       res.status(500).json({ message: err.message });
     }
   }
@@ -284,16 +400,30 @@ router.post( "/:documentId/share", requireDocumentRole(["Admin", "Editor"]),  as
       const doc = await Document.findById(documentId);
 
       if (!doc) {
+        logger.warn("Document share - document not found", { 
+          userId: req.user.id, 
+          documentId 
+        });
         return res.status(404).json({ message: "Document not found" });
       }
 
       if (!users || !Array.isArray(users) || users.length === 0) {
+        logger.warn("Document share - invalid users array", { 
+          userId: req.user.id, 
+          documentId 
+        });
         return res.status(400).json({ message: "Please provide user IDs to share with" });
       }
 
       // Validate users
       const validUsers = await User.find({ _id: { $in: users } });
       if (validUsers.length !== users.length) {
+        logger.warn("Document share - invalid user IDs", { 
+          userId: req.user.id, 
+          documentId, 
+          providedUsers: users.length, 
+          validUsers: validUsers.length 
+        });
         return res.status(400).json({ message: "Some user IDs are invalid" });
       }
 
@@ -301,12 +431,23 @@ router.post( "/:documentId/share", requireDocumentRole(["Admin", "Editor"]),  as
 
       await doc.save();
 
+      logger.info("Document shared successfully", { 
+        userId: req.user.id, 
+        documentId, 
+        sharedWithCount: users.length 
+      });
+      
       res.json({
         message: "Document shared successfully",
         sharedWith: doc.sharedWith.users,
       });
     } catch (err) {
-      console.error("❌ Document sharing error:", err);
+      logger.error("Document sharing error", { 
+        error: err.message, 
+        stack: err.stack, 
+        userId: req.user.id, 
+        documentId: req.params.documentId 
+      });
       res.status(500).json({ message: err.message });
     }
   }
@@ -320,21 +461,45 @@ router.post(
       const { documentId, memberId } = req.params;
       const { role } = req.body;
       const validRoles = ["Admin", "Editor", "Viewer"];
+      
       if (role && !validRoles.includes(role)) {
+        logger.warn("Add document member - invalid role", { 
+          userId: req.user.id, 
+          documentId, 
+          memberId, 
+          role 
+        });
         return res.status(400).json({ message: "Invalid role provided" });
       }
+      
       const user = await User.findById(memberId);
       if (!user) {
+        logger.warn("Add document member - user not found", { 
+          userId: req.user.id, 
+          documentId, 
+          memberId 
+        });
         return res.status(404).json({ message: "User not found" });
       }
+      
       const doc = await Document.findById(documentId);
       if (!doc) {
+        logger.warn("Add document member - document not found", { 
+          userId: req.user.id, 
+          documentId 
+        });
         return res.status(404).json({ message: "Document not found" });
       }
+      
       const existingMember = doc.permissions.find(
         (perm) => perm.user.toString() === memberId
       );
       if (existingMember) {
+        logger.warn("Add document member - user already member", { 
+          userId: req.user.id, 
+          documentId, 
+          memberId 
+        });
         return res
           .status(400)
           .json({ message: "User is already a member of this document" });
@@ -347,12 +512,25 @@ router.post(
 
       await doc.save();
 
+      logger.info("User added to document", { 
+        userId: req.user.id, 
+        documentId, 
+        memberId, 
+        role: role || "Viewer" 
+      });
+      
       res.status(200).json({
         message: `User ${user.firstName} added as ${role || "Viewer"}`,
         document: doc,
       });
     } catch (err) {
-      console.error("❌ Add member error:", err);
+      logger.error("Add member error", { 
+        error: err.message, 
+        stack: err.stack, 
+        userId: req.user.id, 
+        documentId: req.params.documentId, 
+        memberId: req.params.memberId 
+      });
       res.status(500).json({ message: err.message });
     }
   }
@@ -365,36 +543,70 @@ router.delete(
     try {
       const { publicIds } = req.body; 
       if (!publicIds || !Array.isArray(publicIds) || publicIds.length === 0) {
+        logger.warn("Remove document files - invalid publicIds", { 
+          userId: req.user.id, 
+          documentId: req.params.documentId 
+        });
         return res.status(400).json({ message: "Please provide file publicIds to remove" });
       }
 
       const doc = await Document.findById(req.params.documentId);
-      if (!doc) return res.status(404).json({ message: "Document not found" });
+      if (!doc) {
+        logger.warn("Remove document files - document not found", { 
+          userId: req.user.id, 
+          documentId: req.params.documentId 
+        });
+        return res.status(404).json({ message: "Document not found" });
+      }
+      
       const filesToRemove = doc.files.filter(f => publicIds.includes(f.publicId));
       if (filesToRemove.length === 0) {
+        logger.warn("Remove document files - no matching files found", { 
+          userId: req.user.id, 
+          documentId: req.params.documentId, 
+          publicIds 
+        });
         return res.status(400).json({ message: "No matching files found in document" });
       }
+      
+      let deletedCount = 0;
       for (const file of filesToRemove) {
         try {
           await cloudinary.uploader.destroy(file.publicId, { resource_type: file.resourceType || "raw" });
+          deletedCount++;
         } catch (err) {
-          console.warn(`Failed to remove file ${file.originalName}: ${err.message}`);
+          logger.warn(`Failed to remove file from Cloudinary`, { 
+            error: err.message, 
+            fileName: file.originalName, 
+            publicId: file.publicId 
+          });
         }
       }
+      
       doc.files = doc.files.filter(f => !publicIds.includes(f.publicId));
       await doc.save();
 
+      logger.info("Document files removed", { 
+        userId: req.user.id, 
+        documentId: req.params.documentId, 
+        deletedCount, 
+        totalRequested: publicIds.length 
+      });
+      
       res.json({
         message: "Files removed successfully",
         files: doc.files,
       });
     } catch (err) {
-      console.error("❌ File removal error:", err);
+      logger.error("File removal error", { 
+        error: err.message, 
+        stack: err.stack, 
+        userId: req.user.id, 
+        documentId: req.params.documentId 
+      });
       res.status(500).json({ message: err.message });
     }
   }
 );
-
-
 
 module.exports = router;

@@ -2,6 +2,8 @@ import { useState ,useEffect } from 'react';
 import { login, setAuth, getAndClearLastPage, isAuthenticated } from '../api';
 import { Eye, EyeOff , ChevronLeft , ChevronRight , UserRound} from "lucide-react";
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { setUser } from '../reducer/slices/authSlice';
+import { useDispatch } from 'react-redux';
 
 const testimonials = [
   {
@@ -34,6 +36,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
+  const dispatch = useDispatch();
   
   useEffect(() => {
     if (isAuthenticated()) {
@@ -86,6 +89,8 @@ const Login = () => {
     try {
       const response = await login(formData.identifier, formData.password);
       setAuth(response.accessToken, response.refreshToken, response.user);
+      
+      dispatch(setUser(response.user));
       navigate('/dashboard');
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.');

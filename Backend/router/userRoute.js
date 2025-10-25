@@ -15,6 +15,7 @@ const { setupPassport } = require("../services/passport");
 const workspace = require("../models/workspace");
 const ChatRoom = require("../models/chatModel");
 const sendMail = require("../services/nodeMailer");
+const logger = require("../config/logger"); 
 
 setupPassport();
 const router = express.Router();
@@ -36,20 +37,27 @@ async function generateUniqueOTP() {
   return otp;
 }
 
-
 // ---------------------- Refresh Token ----------------------
 router.post("/refresh", async (req, res) => {
   try {
     const { refreshToken } = req.body;
-    if (!refreshToken) return res.status(400).json({ message: "Missing refresh token" });
+    if (!refreshToken) {
+      logger.warn("Refresh token missing in request");
+      return res.status(400).json({ message: "Missing refresh token" });
+    }
 
     const payload = jwt.verify(refreshToken, process.env.JWT_SECRET);
     const user = await User.findById(payload.userId);
-    if (!user) return res.status(401).json({ message: "Invalid token" });
+    if (!user) {
+      logger.warn("Invalid refresh token - user not found", { userId: payload.userId });
+      return res.status(401).json({ message: "Invalid token" });
+    }
 
     const tokens = generateTokens(user);
+    logger.info("Refresh token successful", { userId: user._id });
     res.json(tokens);
   } catch (e) {
+    logger.error("Refresh token error", { error: e.message, stack: e.stack });
     res.status(401).json({ message: "Invalid/expired refresh token" });
   }
 });
@@ -57,13 +65,18 @@ router.post("/refresh", async (req, res) => {
 router.post("/signup", async (req, res) => {
   try {
     const { firstName, lastName, username, email, phone} = req.body;
+    
+    logger.info("User signup attempt", { email, username });
+    
     const existingUser = await User.findOne({
       $or: [{ email }, { username }, { phone }],
     });
-    if (existingUser)
+    if (existingUser) {
+      logger.warn("User signup failed - already exists", { email, username, phone });
       return res.status(400).json({
         message: "User with provided email, username, or phone already exists",
       });
+    }
 
     const otp = await generateUniqueOTP();
     const newUser = new User({
@@ -91,12 +104,14 @@ router.post("/signup", async (req, res) => {
        </div>`
     );
 
+    logger.info("User created successfully", { userId: newUser._id, email });
+    
     res.status(201).json({
       message: "User created successfully. OTP sent to email.",
       user: newUser,
     });
   } catch (err) {
-    console.error("❌ Signup Error:", err);
+    logger.error("Signup Error", { error: err.message, stack: err.stack, email: req.body.email });
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
@@ -105,18 +120,24 @@ router.post("/unverify-signup", async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) {
+      logger.warn("Unverify signup - email missing");
       return res.status(400).json({ error: "Email is required" });
     }
+    
     const user = await User.findOne({ email });
     if (!user) {
+      logger.warn("Unverify signup - user not found", { email });
       return res.status(404).json({ error: "User not found" });
     }
+    
     // Optionally check if user.isVerified === false to restrict deletion
     await User.deleteOne({ email });
 
+    logger.info("Unverified user deleted", { email });
+    
     return res.status(200).json({ message: "Unverified user deleted successfully" });
   } catch (error) {
-    console.error("Error deleting unverified user:", error);
+    logger.error("Error deleting unverified user", { error: error.message, stack: error.stack, email: req.body.email });
     return res.status(500).json({ error: "Internal Server Error" });
   }
 });
@@ -125,15 +146,18 @@ router.post("/verify-otp", async (req, res) => {
   try {
     const { email, otp } = req.body;
     if (!email || !otp) {
+      logger.warn("OTP verification - missing fields", { email });
       return res.status(400).json({ message: "Email and OTP are required." });
     }
 
     const user = await User.findOne({ email });
     if (!user) {
+      logger.warn("OTP verification - user not found", { email });
       return res.status(404).json({ message: "User not found." });
     }
     
     if (user.otp !== Number(otp)) {
+      logger.warn("OTP verification - invalid OTP", { email, providedOTP: otp, storedOTP: user.otp });
       return res.status(400).json({ 
         success : false,
         message: "Invalid OTP." });
@@ -143,12 +167,14 @@ router.post("/verify-otp", async (req, res) => {
     user.otp = null;
     await user.save();
 
+    logger.info("OTP verified successfully", { userId: user._id, email });
+    
     res.status(200).json({ 
       success : true,
       message: "✅ OTP verified successfully."
     });
   } catch (error) {
-    console.error("❌ OTP Verification Error:", error);
+    logger.error("OTP Verification Error", { error: error.message, stack: error.stack, email: req.body.email });
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
@@ -157,22 +183,27 @@ router.post("/set-password", async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
+      logger.warn("Set password - missing fields", { email });
       return res.status(400).json({ message: "Email and password are required." ,  success : false});
     }
     const user = await User.findOne({ email });
     if (!user) {
+      logger.warn("Set password - user not found", { email });
       return res.status(404).json({ message: "User not found.", success: false });
     }
     if (!user.isVerified) {
+      logger.warn("Set password - user not verified", { email });
       return res.status(403).json({ message: "User not verified. Please verify your email first." , success : false });
     }
     
     user.password = password;
     await user.save();
 
+    logger.info("Password set successfully", { userId: user._id, email });
+    
     res.status(200).json({ message: "Password set successfully.", success : true });
   } catch (error) {
-    console.error("❌ Set Password Error:", error);
+    logger.error("Set Password Error", { error: error.message, stack: error.stack, email: req.body.email });
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
@@ -181,25 +212,39 @@ router.post("/set-password", async (req, res) => {
 router.post("/login", async (req, res) => {
   try {
     const { identifier, password } = req.body;
-    if (!identifier || !password) return res.status(400).json({ message: "Please provide identifier and password" });
+    if (!identifier || !password) {
+      logger.warn("Login attempt - missing credentials", { identifier });
+      return res.status(400).json({ message: "Please provide identifier and password" });
+    }
 
     const user = await User.findOne({
       $or: [{ email: identifier.toLowerCase() }, { username: identifier }, { phone: identifier }],
     });
-    if (!user) return res.status(400).json({ message: "Invalid credentials" });
+    if (!user) {
+      logger.warn("Login failed - user not found", { identifier });
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
 
     // Cancel scheduled deletion if exists
     if (user.scheduledDeletion) {
       user.scheduledDeletion = null;
       await user.save();
+      logger.info("Scheduled deletion cancelled due to login", { userId: user._id });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
+    if (!isMatch) {
+      logger.warn("Login failed - invalid password", { userId: user._id, identifier });
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
 
     const tokens = generateTokens(user);
+    
+    logger.info("User login successful", { userId: user._id, identifier });
+    
     res.status(200).json({ message: "Login successful", user, ...tokens });
   } catch (err) {
+    logger.error("Login error", { error: err.message, stack: err.stack, identifier: req.body.identifier });
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
@@ -208,8 +253,8 @@ router.post("/forgot-password", async (req, res) => {
   try {
     const { identifier } = req.body;
   
-
     if (!identifier) {
+      logger.warn("Forgot password - identifier missing");
       return res.status(400).json({ message: "Email or username is required" });
     }
 
@@ -218,9 +263,10 @@ router.post("/forgot-password", async (req, res) => {
       $or: [{ email: identifier }, { username: identifier }],
     });
     
-    console.log(user ,"my user");
+    logger.info("Forgot password request", { identifier, userFound: !!user });
 
     if (!user) {
+      logger.warn("Forgot password - user not found", { identifier });
       return res.status(404).json({ message: "User not found" });
     }
 
@@ -231,8 +277,6 @@ router.post("/forgot-password", async (req, res) => {
     user.otp = otp;
     user.otpExpires = Date.now() + 10 * 60 * 1000; // expires in 10 min
     
-    
-
     // Send OTP via email
     await sendMail(
       user.email,
@@ -242,11 +286,13 @@ router.post("/forgot-password", async (req, res) => {
     );
     
     await user.save();
+    
+    logger.info("Password reset OTP sent", { userId: user._id, email: user.email });
   
     return res.status(200).json({ message: "OTP sent successfully to your email" });
 
   } catch (error) {
-    console.error("Error in forgot-password:", error);
+    logger.error("Error in forgot-password", { error: error.message, stack: error.stack, identifier: req.body.identifier });
     return res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -256,13 +302,16 @@ router.post("/reset-password", async (req, res) => {
     const { identifier, newPassword } = req.body;
 
     if (!identifier || !newPassword) {
+      logger.warn("Reset password - missing fields", { identifier });
       return res.status(400).json({ message: "Identifier and new password are required" });
     }
+    
     const user = await User.findOne({
       $or: [{ email: identifier }, { username: identifier }],
     });
 
     if (!user) {
+      logger.warn("Reset password - user not found", { identifier });
       return res.status(404).json({ message: "User not found" });
     }
 
@@ -271,18 +320,25 @@ router.post("/reset-password", async (req, res) => {
 
     await user.save();
 
+    logger.info("Password reset successful", { userId: user._id, identifier });
+    
     return res.status(200).json({ message: "Password reset successfully" });
 
   } catch (error) {
-    console.error("Error in reset-password:", error);
+    logger.error("Error in reset-password", { error: error.message, stack: error.stack, identifier: req.body.identifier });
     return res.status(500).json({ message: "Internal server error" });
   }
 });
+
 // ---------------------- Profile Update ----------------------
 router.patch("/profile", upload.single("avatar"), authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) {
+      logger.warn("Profile update - user not found", { userId: req.user.id });
+      return res.status(404).json({ message: "User not found" });
+    }
+    
     const updatable = ["firstName", "lastName", "phone", "gender"];
     for (const field of updatable) {
       if (req.body[field] !== undefined) user[field] = req.body[field];
@@ -313,8 +369,9 @@ router.patch("/profile", upload.single("avatar"), authMiddleware, async (req, re
         try {
           resourceType = user.avatar.resourceType
           await cloudinary.uploader.destroy(user.avatar.publicId, { resource_type: resourceType });
+          logger.info("Old avatar deleted from Cloudinary", { userId: user._id, publicId: user.avatar.publicId });
         } catch (err) {
-          console.warn(`Failed to delete old avatar: ${err.message}`);
+          logger.warn(`Failed to delete old avatar: ${err.message}`, { userId: user._id });
         }
       }
 
@@ -344,13 +401,21 @@ router.patch("/profile", upload.single("avatar"), authMiddleware, async (req, re
       // Update avatar in local provider if exists
       const providerLocal = user.providers.find((p) => p.provider === "local");
       if (providerLocal) providerLocal.avatar = user.avatar.url;
+      
+      logger.info("New avatar uploaded", { userId: user._id });
     }
 
     await user.save();
+    
+    logger.info("Profile updated successfully", { userId: user._id });
+    
     res.json({ message: "Profile updated successfully", user });
   } catch (e) {
     let message = e.message;
     if (e.code === 11000) message = "Email, username, or phone already exists";
+    
+    logger.error("Profile update failed", { error: e.message, stack: e.stack, userId: req.user.id });
+    
     res.status(500).json({ message: "Profile update failed", error: message });
   }
 });
@@ -358,11 +423,16 @@ router.patch("/profile", upload.single("avatar"), authMiddleware, async (req, re
 router.get("/get-user", authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password"); // exclude password
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) {
+      logger.warn("Get user - user not found", { userId: req.user.id });
+      return res.status(404).json({ message: "User not found" });
+    }
 
+    logger.info("User data retrieved", { userId: user._id });
+    
     res.json({ user });
   } catch (error) {
-    console.error("Get user error:", error);
+    logger.error("Get user error", { error: error.message, stack: error.stack, userId: req.user.id });
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
@@ -379,14 +449,19 @@ router.post("/logout", authMiddleware, async (req, res) => {
       await BlacklistedToken.create({ token: refreshToken, expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) });
 
     res.clearCookie("refreshToken");
+    
+    logger.info("User logged out successfully", { userId: req.user.id });
+    
     res.json({ message: "Logout successful" });
   } catch (error) {
+    logger.error("Logout error", { error: error.message, stack: error.stack, userId: req.user.id });
     res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 });
 
 // ---------------------- Google OAuth ----------------------
 router.get("/google", passport.authenticate("google", { scope: ["profile", "email"] }));
+
 router.get(
   "/google/callback",
   passport.authenticate("google", { session: false, failureRedirect: "/oauth-failed" }),
@@ -395,6 +470,7 @@ router.get(
       if (req.user.scheduledDeletion) {
         req.user.scheduledDeletion = null;
         await req.user.save();
+        logger.info("Scheduled deletion cancelled due to Google OAuth login", { userId: req.user._id });
       }
 
       const tokens = generateTokens(req.user);
@@ -405,9 +481,11 @@ router.get(
         JSON.stringify(userData)
       )}`;
 
+      logger.info("Google OAuth login successful", { userId: req.user._id, email: req.user.email });
+      
       res.redirect(redirectTo); 
     } catch (err) {
-      console.error("Google OAuth callback error:", err);
+      logger.error("Google OAuth callback error", { error: err.message, stack: err.stack });
       res.redirect("/oauth-failed");
     }
   }
@@ -424,7 +502,9 @@ router.get(
       if (req.user.scheduledDeletion) {
         req.user.scheduledDeletion = null;
         await req.user.save();
+        logger.info("Scheduled deletion cancelled due to GitHub OAuth login", { userId: req.user._id });
       }
+      
       const tokens = generateTokens(req.user);
 
       const { password, providers, scheduledDeletion, ...userData } = req.user.toObject();
@@ -433,35 +513,44 @@ router.get(
         JSON.stringify(userData)
       )}`;
 
+      logger.info("GitHub OAuth login successful", { userId: req.user._id, email: req.user.email });
+      
       res.redirect(redirectTo);
     } catch (err) {
-      console.error("GitHub callback error:", err);
+      logger.error("GitHub callback error", { error: err.message, stack: err.stack });
       res.redirect("/oauth-failed");
     }
   }
 );
-
-
 
 router.post("/delete", authMiddleware, async (req, res) => {
   try {
     const { password } = req.body;
     const user = await User.findById(req.user.id);
 
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) {
+      logger.warn("Account deletion - user not found", { userId: req.user.id });
+      return res.status(404).json({ message: "User not found" });
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: "Incorrect password" });
+    if (!isMatch) {
+      logger.warn("Account deletion - incorrect password", { userId: user._id });
+      return res.status(400).json({ message: "Incorrect password" });
+    }
+    
     const deletionDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     user.scheduledDeletion = deletionDate;
     await user.save();
 
+    logger.info("Account deletion scheduled", { userId: user._id, deletionDate });
+    
     res.json({
       message: "Account deletion scheduled in 30 days.",
       deletionDate,
     });
   } catch (err) {
-    console.error("Error scheduling deletion:", err);
+    logger.error("Error scheduling deletion", { error: err.message, stack: err.stack, userId: req.user.id });
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
@@ -471,10 +560,12 @@ router.post("/invite-friend/:friendId", authMiddleware, async (req, res) => {
     const { friendId } = req.params;
 
     if (!friendId) {
+      logger.warn("Friend invite - friendId missing", { userId: req.user.id });
       return res.status(400).json({ message: "Friend ID is required." });
     }
 
     if (friendId === req.user.id) {
+      logger.warn("Friend invite - self invite attempt", { userId: req.user.id });
       return res.status(400).json({ message: "You cannot invite yourself." });
     }
 
@@ -484,6 +575,7 @@ router.post("/invite-friend/:friendId", authMiddleware, async (req, res) => {
     ]);
 
     if (!userInvited) {
+      logger.warn("Friend invite - invited user not found", { userId: req.user.id, friendId });
       return res.status(404).json({ message: "User to invite not found." });
     }
 
@@ -494,6 +586,7 @@ router.post("/invite-friend/:friendId", authMiddleware, async (req, res) => {
         f.isConnected === true
     );
     if (alreadyConnected) {
+      logger.warn("Friend invite - already friends", { userId: req.user.id, friendId });
       return res.status(400).json({ message: "You are already friends with this user." });
     }
 
@@ -511,6 +604,7 @@ router.post("/invite-friend/:friendId", authMiddleware, async (req, res) => {
       );
 
     if (pendingInvite) {
+      logger.warn("Friend invite - pending invite exists", { userId: req.user.id, friendId });
       return res.status(400).json({ message: "A pending invite already exists." });
     }
 
@@ -539,12 +633,14 @@ router.post("/invite-friend/:friendId", authMiddleware, async (req, res) => {
 
     await Promise.all([user.save(), userInvited.save()]);
 
+    logger.info("Friend invite sent successfully", { userId: req.user.id, friendId: userInvited._id });
+    
     res.status(200).json({
       message: "✅ Friend invite sent successfully!",
       invitedUser: userInvited._id,
     });
   } catch (error) {
-    console.error("❌ Error sending friend invite:", error);
+    logger.error("Error sending friend invite", { error: error.message, stack: error.stack, userId: req.user.id, friendId: req.params.friendId });
     res.status(500).json({ message: "Internal server error." });
   }
 });
@@ -557,6 +653,7 @@ router.get("/friendList", authMiddleware, async (req, res) => {
       .lean();
 
     if (!user) {
+      logger.warn("Friend list - user not found", { userId: req.user.id });
       return res.status(404).json({ message: "User not found." });
     }
 
@@ -613,6 +710,8 @@ router.get("/friendList", authMiddleware, async (req, res) => {
       })),
     }));
 
+    logger.info("Friend list and related data fetched successfully", { userId: req.user.id, friendCount: friendList.length });
+    
     // ✅ Return combined data
     return res.status(200).json({
       friendList,
@@ -620,7 +719,7 @@ router.get("/friendList", authMiddleware, async (req, res) => {
       documentList,
     });
   } catch (error) {
-    console.error("❌ Error fetching friend list and related entities:", error);
+    logger.error("Error fetching friend list and related entities", { error: error.message, stack: error.stack, userId: req.user.id });
     return res.status(500).json({ message: "Internal server error." });
   }
 });
@@ -637,6 +736,7 @@ router.post("/accept-invite/:id", authMiddleware, async (req, res) => {
     ]);
 
     if (!user || !friendUser) {
+      logger.warn("Accept invite - user not found", { currentUserId, friendId });
       return res.status(404).json({ message: "User not found." });
     }
 
@@ -646,6 +746,7 @@ router.post("/accept-invite/:id", authMiddleware, async (req, res) => {
     );
 
     if (!friendEntry) {
+      logger.warn("Accept invite - no pending invite found", { currentUserId, friendId });
       return res.status(400).json({ message: "No pending invite found." });
     }
 
@@ -653,7 +754,7 @@ router.post("/accept-invite/:id", authMiddleware, async (req, res) => {
     friendEntry.isConnected = true;
     friendEntry.getInvite = false;
 
-    // Also update the friend’s record to mark connection
+    // Also update the friend's record to mark connection
     const friendSide = friendUser.friendList.find(
       f => f.friendId.toString() === currentUserId && f.isInvited === true
     );
@@ -662,7 +763,7 @@ router.post("/accept-invite/:id", authMiddleware, async (req, res) => {
       friendSide.isConnected = true;
       friendSide.isInvited = false;
     } else {
-      // In case the record doesn’t exist, add it
+      // In case the record doesn't exist, add it
       friendUser.friendList.push({
         friendId: currentUserId,
         isConnected: true,
@@ -671,11 +772,13 @@ router.post("/accept-invite/:id", authMiddleware, async (req, res) => {
 
     await Promise.all([user.save(), friendUser.save()]);
 
+    logger.info("Friend invite accepted", { currentUserId, friendId });
+    
     return res.status(200).json({
       message: "✅ Friend invite accepted successfully.",
     });
   } catch (error) {
-    console.error("❌ Error accepting invite:", error);
+    logger.error("Error accepting invite", { error: error.message, stack: error.stack, userId: req.user.id, friendId: req.params.id });
     return res.status(500).json({ message: "Internal server error." });
   }
 });
@@ -692,6 +795,7 @@ router.post("/reject-invite/:id", authMiddleware, async (req, res) => {
     ]);
 
     if (!user || !friendUser) {
+      logger.warn("Reject invite - user not found", { currentUserId, friendId });
       return res.status(404).json({ message: "User not found." });
     }
 
@@ -701,6 +805,7 @@ router.post("/reject-invite/:id", authMiddleware, async (req, res) => {
     );
 
     if (!friendEntry) {
+      logger.warn("Reject invite - no pending invite found", { currentUserId, friendId });
       return res.status(400).json({ message: "No pending invite found to reject." });
     }
 
@@ -708,7 +813,7 @@ router.post("/reject-invite/:id", authMiddleware, async (req, res) => {
     friendEntry.getInvite = false;
     friendEntry.rejectInvite = true;
 
-    // Also update the friend’s record (the one who sent the invite)
+    // Also update the friend's record (the one who sent the invite)
     const friendSide = friendUser.friendList.find(
       f => f.friendId.toString() === currentUserId && f.isInvited === true
     );
@@ -720,11 +825,13 @@ router.post("/reject-invite/:id", authMiddleware, async (req, res) => {
 
     await Promise.all([user.save(), friendUser.save()]);
 
+    logger.info("Friend invite rejected", { currentUserId, friendId });
+    
     return res.status(200).json({
       message: "🚫 Friend invite rejected successfully.",
     });
   } catch (error) {
-    console.error("❌ Error rejecting invite:", error);
+    logger.error("Error rejecting invite", { error: error.message, stack: error.stack, userId: req.user.id, friendId: req.params.id });
     return res.status(500).json({ message: "Internal server error." });
   }
 });
@@ -734,9 +841,10 @@ router.post('/chat/history', authMiddleware, async (req, res) => {
     const { type, roomId, userId } = req.body;
     const currentUserId = req.user.id;
 
-    console.log("📥 Chat history request:", { type, roomId, userId });
+    logger.info("Chat history request", { type, roomId, userId, currentUserId });
 
     if (!type || !roomId || roomId === "undefined") {
+      logger.warn("Chat history - missing parameters", { type, roomId, userId });
       return res.status(400).json({ message: "Missing required parameters" });
     }
 
@@ -757,14 +865,14 @@ router.post('/chat/history', authMiddleware, async (req, res) => {
       query.toModel = backendType === 'workspace' ? 'Workspace' : 'Document';
     }
 
-    console.log("🔍 Chat room query:", query);
+    logger.debug("Chat room query", { query });
 
     const chatRoom = await ChatRoom.findOne(query)
       .populate('messages.user', 'firstName lastName username avatar')
       .lean();
 
     if (!chatRoom) {
-      console.log("📭 No chat room found");
+      logger.info("No chat room found", { query });
       return res.json({ messages: [] });
     }
 
@@ -773,7 +881,7 @@ router.post('/chat/history', authMiddleware, async (req, res) => {
       (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
     );
 
-    console.log(`📨 Found ${messages.length} messages`);
+    logger.info(`Found ${messages.length} messages`, { roomId, type });
 
     // Format messages for frontend
     const formattedMessages = messages.map(msg => ({
@@ -788,7 +896,7 @@ router.post('/chat/history', authMiddleware, async (req, res) => {
     return res.status(200).json({ messages: formattedMessages });
 
   } catch (err) {
-    console.error("❌ Error getting chat history:", err);
+    logger.error("Error getting chat history", { error: err.message, stack: err.stack, userId: req.user.id, body: req.body });
     return res.status(500).json({ message: "Internal server error" });
   }
 });

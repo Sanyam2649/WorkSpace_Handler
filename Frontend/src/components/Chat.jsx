@@ -438,7 +438,7 @@ const Chat = ({ isOpen, onClose, workspaceId, chatType = 'workspace' }) => {
               </div>
 
               {/* Chat Selector */}
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 overflow-y-auto">
                 <ChatSelector
                   friendList={friendList}
                   workspaceList={workspaceList}

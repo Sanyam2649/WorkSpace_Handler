@@ -1,20 +1,23 @@
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { isAuthenticated, saveLastPage } from '../api';
+import { useSelector } from 'react-redux';
+import { saveLastPage } from '../api';
 
 const ProtectedRoute = ({ children }) => {
+  const user = useSelector((state) => state.user.value);
+  const accessToken = sessionStorage.getItem('accessToken');
+
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    if (!isAuthenticated()) {
+    if (!user || !accessToken) {
       saveLastPage(location.pathname + location.search);
       navigate('/login');
     }
-  }, [navigate, location]);
+  }, [user, accessToken, navigate, location]);
 
-  // If not authenticated, don't render children
-  if (!isAuthenticated()) {
+  if (!user || !accessToken) {
     return null;
   }
 
