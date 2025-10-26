@@ -1,7 +1,7 @@
 const ChatRoom = require("../models/chatModel");
 const Workspace = require("../models/workspace");
 const Document = require("../models/document");
-const User = require("../models/user"); // Make sure to import User model
+const User = require("../models/user"); 
 const { isBlocked, onlyAdminChatInWorkspace, onlyAdminorEditorChatInWorkspace, onlyAdminChatInDocs, onlyAdminorEditorChatInInDocument } = require("../config/chatAcess");
 const logger = require("../config/logger"); 
 

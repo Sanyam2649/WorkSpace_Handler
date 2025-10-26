@@ -1,3 +1,4 @@
+// src/context/themeContext.jsx
 import React, { createContext, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchUser } from '../reducer/thunks/userThunk';

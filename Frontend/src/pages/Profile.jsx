@@ -4,6 +4,7 @@ import { updateProfile, getStoredUser, deleteAccount } from '../api';
 import { fetchUser } from '../reducer/thunks/userThunk'
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import { useToast } from '../context/useToast';
 import {
   Camera,
   Edit3,
@@ -25,6 +26,7 @@ import {
 const Profile = () => {
   const user = useSelector((state) => state.user.value);
   const dispatch = useDispatch();
+  const { showToast } = useToast();
   
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -50,7 +52,6 @@ const Profile = () => {
   });
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
-  const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
@@ -78,7 +79,6 @@ const Profile = () => {
           },
         },
       });
-      setError('');
     } catch (err) {
       const storedUser = getStoredUser();
       if (storedUser) {
@@ -100,7 +100,8 @@ const Profile = () => {
           },
         });
       }
-      setError('Failed to load profile data');
+      const errorMessage = 'Failed to load profile data';
+      showToast(errorMessage, 'error');
     }
   };
 
@@ -129,19 +130,21 @@ const Profile = () => {
   
   const handleDeleteAccount = async () => {
     if (!deletePassword) {
-      setError('Please enter your password to confirm account deletion');
+      const errorMessage = 'Please enter your password to confirm account deletion';
+      showToast(errorMessage, 'error');
       return;
     }
 
     try {
       setDeleteLoading(true);
-      setError('');
       await deleteAccount(deletePassword);
       setShowDeleteModal(false);
       setDeletePassword('');
+      showToast('Account deleted successfully', 'success');
       // The logout and redirect will be handled by the deleteAccount API
     } catch (err) {
-      setError(err.message || 'Failed to delete account. Please check your password and try again.');
+      const errorMessage = err.message || 'Failed to delete account. Please check your password and try again.';
+      showToast(errorMessage, 'error');
     } finally {
       setDeleteLoading(false);
     }
@@ -151,14 +154,15 @@ const Profile = () => {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        setError('Image size should be less than 5MB');
+        const errorMessage = 'Image size should be less than 5MB';
+        showToast(errorMessage, 'error');
         return;
       }
       setAvatarFile(file);
       const reader = new FileReader();
       reader.onload = (event) => setAvatarPreview(event.target.result);
       reader.readAsDataURL(file);
-      setError('');
+      showToast('Profile picture updated', 'success');
     }
   };
 
@@ -166,7 +170,6 @@ const Profile = () => {
     e.preventDefault();
     try {
       setLoading(true);
-      setError('');
       setSuccess('');
       
       console.log(formData , "formData");
@@ -179,10 +182,13 @@ const Profile = () => {
       setEditing(false);
       setAvatarFile(null);
       setAvatarPreview(null);
-      setSuccess('Profile updated successfully!');
+      const successMessage = 'Profile updated successfully!';
+      setSuccess(successMessage);
+      showToast(successMessage, 'success');
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError(err.message || 'Failed to update profile');
+      const errorMessage = err.message || 'Failed to update profile';
+      showToast(errorMessage, 'error');
     } finally {
       setLoading(false);
     }
@@ -193,8 +199,8 @@ const Profile = () => {
     setEditing(false);
     setAvatarFile(null);
     setAvatarPreview(null);
-    setError('');
     setSuccess('');
+    showToast('Changes discarded', 'info');
   };
 
   const getInitials = (firstName, lastName) => {
@@ -203,6 +209,22 @@ const Profile = () => {
 
   const getAvatarUrl = () => {
     return avatarPreview || user?.avatar?.url || null;
+  };
+
+  const handleEditProfile = () => {
+    setEditing(true);
+    showToast('Edit mode enabled', 'info');
+  };
+
+  const handleDeleteModalOpen = () => {
+    setShowDeleteModal(true);
+    showToast('Please confirm account deletion', 'warning');
+  };
+
+  const handleDeleteModalClose = () => {
+    setShowDeleteModal(false);
+    setDeletePassword('');
+    showToast('Account deletion cancelled', 'info');
   };
 
   return (
@@ -217,13 +239,6 @@ const Profile = () => {
             <p className="text-base-content/70 mt-1 sm:mt-2 text-sm sm:text-base">Manage your account information and preferences</p>
           </div>
 
-          {/* Alert Messages */}
-          {error && (
-            <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-error/10 border border-error/20 rounded-xl flex items-start sm:items-center gap-2 sm:gap-3">
-              <AlertCircle size={18} className="text-error flex-shrink-0 mt-0.5 sm:mt-0" />
-              <span className="text-error-content text-sm sm:text-base">{error}</span>
-            </div>
-          )}
 
           {success && (
             <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-success/10 border border-success/20 rounded-xl flex items-start sm:items-center gap-2 sm:gap-3">
@@ -272,7 +287,7 @@ const Profile = () => {
                 {!editing ? (
                   <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
                     <button
-                      onClick={() => setShowDeleteModal(true)}
+                      onClick={handleDeleteModalOpen}
                       className="px-4 sm:px-6 py-2 bg-error text-error-content rounded-xl hover:bg-error/90 transition-all font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg text-sm sm:text-base order-2 sm:order-1"
                     >
                       <Trash2 size={16} className="sm:w-4 sm:h-4" />
@@ -280,7 +295,7 @@ const Profile = () => {
                       <span className="sm:hidden">Delete</span>
                     </button>
                     <button
-                      onClick={() => setEditing(true)}
+                      onClick={handleEditProfile}
                       className="px-4 sm:px-6 py-2 bg-primary text-primary-content rounded-xl hover:bg-primary/90 transition-all font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg text-sm sm:text-base order-1 sm:order-2"
                     >
                       <Edit3 size={16} className="sm:w-4 sm:h-4" />
@@ -678,11 +693,7 @@ const Profile = () => {
             
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-4 sm:mt-6">
               <button
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setDeletePassword('');
-                  setError('');
-                }}
+                onClick={handleDeleteModalClose}
                 className="flex-1 px-3 sm:px-4 py-2 border border-base-300 text-base-content rounded-xl hover:bg-base-200 transition-colors font-medium flex items-center justify-center gap-2 text-sm sm:text-base"
               >
                 <X size={16} className="sm:w-4 sm:h-4" />

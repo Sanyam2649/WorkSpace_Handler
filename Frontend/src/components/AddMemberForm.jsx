@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { searchMembers, addWorkspaceMember } from '../api';
 import { Plus, X, Search, User, Mail, Loader2 } from 'lucide-react';
+import { useToast } from '../context/useToast';
 
 const roles = ["Viewer", "Editor", "Admin"];
 
@@ -10,38 +11,51 @@ const AddMemberForm = ({ workspaceId, onMemberAdded, onClose }) => {
   const [searchError, setSearchError] = useState('');
   const [results, setResults] = useState([]);
   const [selectedRole, setSelectedRole] = useState('Viewer');
-  const [addError, setAddError] = useState('');
   const [addSuccess, setAddSuccess] = useState(false);
+  const { showToast } = useToast();
 
   const handleSearch = async (e) => {
     e.preventDefault();
-    if (!search.trim()) return;
+    if (!search.trim()) {
+      showToast('Please enter a search term', 'warning');
+      return;
+    }
     
     setSearching(true);
     setSearchError('');
     setResults([]);
     try {
+      showToast('Searching for members...', 'info');
       const out = await searchMembers(search);
       setResults(out);
+      if (out.length === 0) {
+        showToast('No members found with that search term', 'info');
+      } else {
+        showToast(`Found ${out.length} member(s)`, 'success');
+      }
     } catch (err) {
-      setSearchError(err.message || 'Error searching members');
+      const errorMessage = err.message || 'Error searching members';
+      setSearchError(errorMessage);
+      showToast(errorMessage, 'error');
     } finally {
       setSearching(false);
     }
   };
 
   const handleAdd = async (user) => {
-    setAddError('');
     setAddSuccess(false);
     try {
+      showToast(`Adding ${user.name || user.email} as ${selectedRole}...`, 'info');
       await addWorkspaceMember(workspaceId, { userId: user._id, role: selectedRole });
       setAddSuccess(true);
+      showToast(`Successfully added ${user.name || user.email} as ${selectedRole}`, 'success');
       setTimeout(() => {
         if (onMemberAdded) onMemberAdded(user);
         if (onClose) onClose();
       }, 1000);
     } catch (err) {
-      setAddError(err.message || 'Failed to add member');
+      const errorMessage = err.message || 'Failed to add member';
+      showToast(errorMessage, 'error');
     } 
   };
 
@@ -49,6 +63,24 @@ const AddMemberForm = ({ workspaceId, onMemberAdded, onClose }) => {
     if (e.key === 'Enter') {
       handleSearch(e);
     }
+  };
+
+  const handleRoleChange = (e) => {
+    const newRole = e.target.value;
+    setSelectedRole(newRole);
+    showToast(`Role set to ${newRole}`, 'info');
+  };
+
+  const handleClose = () => {
+    showToast('Closing add member form', 'info');
+    if (onClose) onClose();
+  };
+
+  const handleClearSearch = () => {
+    setSearch('');
+    setResults([]);
+    setSearchError('');
+    showToast('Search cleared', 'info');
   };
 
   return (
@@ -67,6 +99,15 @@ const AddMemberForm = ({ workspaceId, onMemberAdded, onClose }) => {
                 onKeyPress={handleKeyPress}
                 placeholder="Search by name or email..."
               />
+              {search && (
+                <button
+                  type="button"
+                  onClick={handleClearSearch}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-base-content/50 hover:text-base-content transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              )}
             </div>
             <button
               type="submit"
@@ -102,7 +143,7 @@ const AddMemberForm = ({ workspaceId, onMemberAdded, onClose }) => {
             <select
               id="role"
               value={selectedRole}
-              onChange={e => setSelectedRole(e.target.value)}
+              onChange={handleRoleChange}
               className="flex-1 px-3 sm:px-4 py-2 sm:py-3 border border-base-300 rounded-lg sm:rounded-xl bg-base-100 text-base-content focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 text-sm sm:text-base"
             >
               {roles.map(r => (
@@ -175,12 +216,6 @@ const AddMemberForm = ({ workspaceId, onMemberAdded, onClose }) => {
 
         {/* Status Messages */}
         <div className="mt-4 space-y-2">
-          {addError && (
-            <div className="p-2 sm:p-3 rounded-lg bg-error/10 border border-error/20 text-error-content flex items-center gap-2 text-sm sm:text-base">
-              <div className="w-2 h-2 bg-error rounded-full flex-shrink-0"></div>
-              {addError}
-            </div>
-          )}
           {addSuccess && (
             <div className="p-2 sm:p-3 rounded-lg bg-success/10 border border-success/20 text-success-content flex items-center gap-2 text-sm sm:text-base">
               <div className="w-2 h-2 bg-success rounded-full flex-shrink-0"></div>
@@ -193,7 +228,7 @@ const AddMemberForm = ({ workspaceId, onMemberAdded, onClose }) => {
       {/* Mobile Action Footer */}
       <div className="sm:hidden pt-4 border-t border-base-300 mt-4">
         <button
-          onClick={onClose}
+          onClick={handleClose}
           className="w-full py-3 px-4 border border-base-300 text-base-content rounded-lg hover:bg-base-200 transition-colors font-medium"
         >
           Close

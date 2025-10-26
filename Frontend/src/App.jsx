@@ -20,10 +20,13 @@ import ForgotPasswordFlow from './components/forgotpassword';
 function App() {
   const dispatch = useDispatch();  
   useEffect(() => {
-    dispatch(fetchUser());
-    dispatch(fetchAllWorkspaces());
+    const token = sessionStorage.getItem('accessToken');
+    if (token) {
+      dispatch(fetchUser());
+      dispatch(fetchAllWorkspaces());
+    }
   }, [dispatch]);
-
+  
   return (
     <Router>
       <div className="App min-h-screen bg-base-100 font-fredoka">

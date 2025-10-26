@@ -10,6 +10,7 @@ import {
   rollbackDocumentThunk
 } from '../reducer/thunks/documentThunk';
 import { clearCurrentDocument } from '../reducer/slices/documentSlice';
+import { useToast } from '../context/useToast';
 import {
   Edit3,
   Save,
@@ -40,6 +41,7 @@ const Document = ({ documentId, onClose, onUpdate }) => {
   const { currentDocument, loading, updating, error } = useSelector(
     (state) => state.documents
   );
+  const { showToast } = useToast();
   
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({ title: '', content: '' });
@@ -76,6 +78,9 @@ const Document = ({ documentId, onClose, onUpdate }) => {
         title: currentDocument.title, 
         content: currentDocument.content 
       });
+      showToast('Edit cancelled', 'info');
+    } else {
+      showToast('Edit mode enabled', 'info');
     }
     setIsEditing(!isEditing);
     setShowMobileMenu(false);
@@ -83,6 +88,7 @@ const Document = ({ documentId, onClose, onUpdate }) => {
 
   const saveChanges = async () => {
     try {
+      showToast('Saving changes...', 'info');
       const updatedDoc = await dispatch(updateExistingDocument({
         documentId,
         documentData: editData,
@@ -91,26 +97,41 @@ const Document = ({ documentId, onClose, onUpdate }) => {
       
       setIsEditing(false);
       setSelectedFiles(null);
+      showToast('Document updated successfully!', 'success');
       if (onUpdate) onUpdate(updatedDoc);
     } catch (err) {
+      const errorMessage = err.message || 'Failed to update document';
       console.error('Failed to update document:', err);
+      showToast(errorMessage, 'error');
     }
   };
 
   const deleteDoc = async () => {
     if (window.confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
       try {
+        showToast('Deleting document...', 'info');
         await dispatch(deleteExistingDocument(documentId)).unwrap();
+        showToast('Document deleted successfully', 'success');
         onClose && onClose();
       } catch (err) {
+        const errorMessage = err.message || 'Failed to delete document';
         console.error('Failed to delete document:', err);
+        showToast(errorMessage, 'error');
       }
+    } else {
+      showToast('Document deletion cancelled', 'info');
     }
     setShowMobileMenu(false);
   };
 
   const shareDoc = async () => {
+    if (shareUsers.length === 0) {
+      showToast('Please enter at least one user ID', 'warning');
+      return;
+    }
+
     try {
+      showToast(`Sharing document with ${shareUsers.length} user(s)...`, 'info');
       await dispatch(shareDocumentThunk({
         documentId,
         userIds: shareUsers
@@ -118,16 +139,23 @@ const Document = ({ documentId, onClose, onUpdate }) => {
       
       setShowShareModal(false);
       setShareUsers([]);
+      showToast('Document shared successfully!', 'success');
       dispatch(fetchDocument(documentId));
     } catch (err) {
+      const errorMessage = err.message || 'Failed to share document';
       console.error('Failed to share document:', err);
+      showToast(errorMessage, 'error');
     }
   };
 
   const addMember = async () => {
-    if (!newMemberId.trim()) return;
+    if (!newMemberId.trim()) {
+      showToast('Please enter a user ID', 'warning');
+      return;
+    }
     
     try {
+      showToast(`Adding member as ${newMemberRole}...`, 'info');
       await dispatch(addDocumentMemberThunk({
         documentId,
         userId: newMemberId.trim(),
@@ -136,36 +164,47 @@ const Document = ({ documentId, onClose, onUpdate }) => {
       
       setNewMemberId('');
       setNewMemberRole('Viewer');
+      showToast('Member added successfully!', 'success');
       dispatch(fetchDocument(documentId));
     } catch (err) {
+      const errorMessage = err.message || 'Failed to add member';
       console.error('Failed to add member:', err);
+      showToast(errorMessage, 'error');
     }
   };
 
   const removeFile = async (publicId) => {
     try {
+      showToast(`Removing file`, 'info');
       await dispatch(removeDocumentFilesThunk({
         documentId,
         fileIds: [publicId]
       })).unwrap();
       
+      showToast('File removed successfully', 'success');
       dispatch(fetchDocument(documentId));
     } catch (err) {
+      const errorMessage = err.message || 'Failed to remove file';
       console.error('Failed to remove file:', err);
+      showToast(errorMessage, 'error');
     }
   };
 
   const rollbackVersion = async (versionIndex) => {
     try {
+      showToast(`Restoring version: ${versionIndex}...`, 'info');
       await dispatch(rollbackDocumentThunk({
         documentId,
         versionIndex
       })).unwrap();
       
+      showToast('Version restored successfully!', 'success');
       dispatch(fetchDocument(documentId));
       setShowVersionHistory(false);
     } catch (err) {
+      const errorMessage = err.message || 'Failed to rollback version';
       console.error('Failed to rollback version:', err);
+      showToast(errorMessage, 'error');
     }
   };
 
@@ -251,7 +290,6 @@ const Document = ({ documentId, onClose, onUpdate }) => {
             className="btn btn-outline btn-sm border border-primary/20 hover:border-primary hover:bg-primary/10 text-primary rounded-lg transition-all duration-200 disabled:opacity-50"
           >
             {isEditing ? <X size={16} /> : <Edit3 size={16} />}
-            <span className="hidden lg:inline">{isEditing ? 'Cancel' : 'Edit'}</span>
           </button>
 
           {isEditing && (
@@ -261,7 +299,6 @@ const Document = ({ documentId, onClose, onUpdate }) => {
               className="btn btn-primary btn-sm text-primary-content rounded-lg transition-all duration-200 disabled:opacity-50"
             >
               {updating ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-              <span className="hidden lg:inline">Save</span>
             </button>
           )}
 
@@ -271,7 +308,6 @@ const Document = ({ documentId, onClose, onUpdate }) => {
             className="btn btn-outline btn-sm border border-info/20 hover:border-info hover:bg-info/10 text-info rounded-lg transition-all duration-200 disabled:opacity-50"
           >
             <Share2 size={16} />
-            <span className="hidden lg:inline">Share</span>
           </button>
 
           <button
@@ -280,7 +316,6 @@ const Document = ({ documentId, onClose, onUpdate }) => {
             className="btn btn-outline btn-sm border border-warning/20 hover:border-warning hover:bg-warning/10 text-warning rounded-lg transition-all duration-200 disabled:opacity-50"
           >
             <History size={16} />
-            <span className="hidden lg:inline">History</span>
           </button>
 
           <button
@@ -289,7 +324,6 @@ const Document = ({ documentId, onClose, onUpdate }) => {
             className="btn btn-outline btn-sm border border-error/20 hover:border-error hover:bg-error/10 text-error rounded-lg transition-all duration-200 disabled:opacity-50"
           >
             <Trash2 size={16} />
-            <span className="hidden lg:inline">Delete</span>
           </button>
         </div>
 

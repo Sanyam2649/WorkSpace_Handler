@@ -901,4 +901,49 @@ router.post('/chat/history', authMiddleware, async (req, res) => {
   }
 });
 
+router.post("/chat-settings", authMiddleware, async (req, res) => {
+  try {
+    const { type, id, settings } = req.body;
+    logger.info(`Received chat settings update request for type: ${type}, id: ${id}`);
+
+    if (!type || !id || !settings || !settings.policy) {
+      logger.warn("Missing required fields in request body");
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    if (type === "workspace") {
+      const Workspace = await workspace.findById(id);
+      if (!Workspace) {
+        logger.warn(`Workspace not found with id: ${id}`);
+        return res.status(404).json({ message: "Workspace not found" });
+      }
+
+      Workspace.chatPolicy = settings.policy;
+      await Workspace.save();
+      logger.info(`Workspace chat policy updated successfully for id: ${id}`);
+      return res.status(200).json({ message: "Workspace chat settings updated" });
+    }
+
+    if (type === "document") {
+      const DocumentItem = await Document.findById(id);
+      if (!DocumentItem) {
+        logger.warn(`Document not found with id: ${id}`);
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      DocumentItem.chatPolicy = settings.policy;
+      await DocumentItem.save();
+      logger.info(`Document chat policy updated successfully for id: ${id}`);
+      return res.status(200).json({ message: "Document chat settings updated" });
+    }
+
+    logger.warn(`Invalid type provided: ${type}`);
+    return res.status(400).json({ message: "Invalid type" });
+  } catch (error) {
+    logger.error(`Error updating chat settings: ${error.message}`, { stack: error.stack });
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+
 module.exports = router;

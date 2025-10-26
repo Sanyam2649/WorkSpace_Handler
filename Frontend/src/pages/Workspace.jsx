@@ -47,11 +47,12 @@ import {
   Briefcase,
   ArrowLeft
 } from 'lucide-react';
+import {useToast} from "../context/useToast";
 
 export default function Workspace() {
   const { id } = useParams();
   const dispatch = useDispatch();
-
+  const { showToast } = useToast();
   const {
     currentWorkspace,
     documents,
@@ -79,27 +80,28 @@ export default function Workspace() {
   const [activeChat, setActiveChat] = useState(null);
   const [isComponent, setIsComponent] = useState(false);
 
-  // Single API call in parent component
-  useEffect(() => {
-    if (!id) return;
+  // useEffect(() => {
+  //   if (!id) return;
 
-    console.log('Loading workspace data for:', id);
+  //   console.log('Loading workspace data for:', id);
 
-    const loadWorkspaceData = async () => {
-      try {
-        await dispatch(fetchWorkspace(id)).unwrap();
-        await dispatch(fetchWorkspaceDocuments(id)).unwrap();
-      } catch (error) {
-        console.error('Error loading workspace:', error);
-      }
-    };
+  //   const loadWorkspaceData = async () => {
+  //     try {
+  //       await dispatch(fetchWorkspace(id)).unwrap();
+  //       await dispatch(fetchWorkspaceDocuments(id)).unwrap();
+  //       showToast('Workspace loaded successfully');
+  //     } catch (error) {
+  //       console.error('Error loading workspace:', error);
+  //       showToast('Failed to load workspace', 'error');
+  //     }
+  //   };
 
-    loadWorkspaceData();
+  //   loadWorkspaceData();
 
-    return () => {
-      dispatch(clearSearchResults());
-    };
-  }, [id, dispatch]);
+  //   return () => {
+  //     dispatch(clearSearchResults());
+  //   };
+  // }, [id, dispatch]);
 
   useEffect(() => {
     if (currentView === 'chat' && currentWorkspace && !activeChat) {
@@ -140,9 +142,11 @@ export default function Workspace() {
   const handleRemoveMember = async (memberId) => {
     try {
       await dispatch(removeWorkspaceMemberThunk({ workspaceId: id, memberId })).unwrap();
+      showToast('Member removed successfully');
       refreshWorkspaceData();
     } catch (error) {
       console.error('Error removing member:', error);
+      showToast('Failed to remove member', 'error');
     }
   };
 
@@ -153,9 +157,11 @@ export default function Workspace() {
         memberId,
         role
       })).unwrap();
+      showToast('Member role updated successfully');
       refreshWorkspaceData();
     } catch (error) {
       console.error('Error updating member role:', error);
+      showToast('Failed to update member role', 'error');
     }
   };
 
@@ -168,8 +174,10 @@ export default function Workspace() {
       })).unwrap();
 
       dispatch(addDocumentToList(newDoc));
+      showToast('Document created successfully');
     } catch (error) {
       console.error('Error creating document:', error);
+      showToast('Failed to create document', 'error');
     } finally {
       setShowCreateDocumentForm(false);
     }
@@ -184,8 +192,10 @@ export default function Workspace() {
       })).unwrap();
 
       dispatch(updateDocumentInList(updatedDoc));
+      showToast('Document updated successfully');
     } catch (error) {
       console.error('Error updating document:', error);
+      showToast('Failed to update document', 'error');
     } finally {
       setSelectedDocumentId(null);
       setShowDocumentModal(false);
@@ -210,8 +220,10 @@ export default function Workspace() {
         query: searchQuery,
         workspaceId: id
       })).unwrap();
+      showToast(`Found ${searchResults.length} documents`);
     } catch (error) {
       console.error('Search error:', error);
+      showToast('Search failed', 'error');
     }
   };
 
@@ -219,8 +231,10 @@ export default function Workspace() {
     try {
       await dispatch(fetchWorkspace(id)).unwrap();
       await dispatch(fetchWorkspaceDocuments(id)).unwrap();
+      showToast('Workspace refreshed');
     } catch (error) {
       console.error('Error refreshing workspace:', error);
+      showToast('Failed to refresh workspace', 'error');
     }
   };
 
@@ -843,7 +857,7 @@ const DocumentCard = ({ doc, onView, onEdit, canEdit }) => {
   );
 };
 
-const MemberCard = ({ member, onRemove, onUpdateRole, canManage, currentUserId, index }) => {
+const MemberCard = ({ member, onRemove, onUpdateRole, canManage, currentUserId}) => {
   const isCurrentUser = member.user._id === currentUserId;
 
   return (

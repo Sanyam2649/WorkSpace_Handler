@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { signup, verifyOtp, setPassword, rejectVerification } from "../api";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, CircleArrowLeft, X } from "lucide-react";
+import { useToast } from '../context/useToast';
 
 const steps = [
   "Your details",
@@ -32,6 +33,7 @@ export default function SignupFlow() {
   const [showModal, setShowModal] = useState(false);
   const [showArrow, setShowArrow] = useState(false);
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const [fields, setFields] = useState({
     firstName: "",
@@ -46,7 +48,6 @@ export default function SignupFlow() {
 
   const [userEmail, setUserEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [apiError, setApiError] = useState("");
 
   const handleChange = (e) => {
     setFields({ ...fields, [e.target.name]: e.target.value });
@@ -88,49 +89,57 @@ export default function SignupFlow() {
         password: "",
         confirmPassword: "",
       });
+      showToast('Signup process cancelled successfully', 'info');
     } catch (error) {
-      setApiError(error.message || "Failed to reject verification. Please try again.");
+      const errorMessage = error.message || "Failed to reject verification. Please try again.";
+      showToast(errorMessage, 'error');
     }
     setLoading(false);
   };
 
   // Validation
   const validateStep = () => {
-    setApiError("");
     if (step === 0) {
       if (!fields.firstName || !fields.lastName || !fields.email || !fields.phone || !fields.username) {
-        setApiError("All fields are required.");
+        const errorMessage = "All fields are required.";
+        showToast(errorMessage, 'error');
         return false;
       }
       if (!fields.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-        setApiError("Enter a valid email address.");
+        const errorMessage = "Enter a valid email address.";
+        showToast(errorMessage, 'error');
         return false;
       }
       
       if (fields.phone.length !== 10) {
-        setApiError("Enter a valid Phone number");
+        const errorMessage = "Enter a valid Phone number";
+        showToast(errorMessage, 'error');
         return false;
       }
       return true;
     }
     if (step === 1) {
       if (fields.otp.some((digit) => digit === "")) {
-        setApiError("Enter all 4 digits of the OTP.");
+        const errorMessage = "Enter all 4 digits of the OTP.";
+        showToast(errorMessage, 'error');
         return false;
       }
       return true;
     }
     if (step === 2) {
       if (!fields.password || fields.password.length < 8) {
-        setApiError("Password must be at least 8 characters.");
+        const errorMessage = "Password must be at least 8 characters.";
+        showToast(errorMessage, 'error');
         return false;
       }
       if (!/[!@#$%^&*(),.?":{}|<>]/.test(fields.password)) {
-        setApiError("Password must have at least one special character.");
+        const errorMessage = "Password must have at least one special character.";
+        showToast(errorMessage, 'error');
         return false;
       }
       if (fields.password !== fields.confirmPassword) {
-        setApiError("Passwords do not match.");
+        const errorMessage = "Passwords do not match.";
+        showToast(errorMessage, 'error');
         return false;
       }
       return true;
@@ -147,8 +156,10 @@ export default function SignupFlow() {
       setUserEmail(email);
       setStep(1);
       setShowArrow(true);
+      showToast('Verification code sent to your email!', 'success');
     } catch (err) {
-      setApiError(err.message || "Signup failed. Please try again.");
+      const errorMessage = err.message || "Signup failed. Please try again.";
+      showToast(errorMessage, 'error');
     }
     setLoading(false);
   };
@@ -159,8 +170,10 @@ export default function SignupFlow() {
       const otp = fields.otp.join("");
       await verifyOtp({ email: userEmail, otp });
       setStep(2);
+      showToast('Email verified successfully!', 'success');
     } catch (err) {
-      setApiError(err.message || "Invalid OTP. Please try again.");
+      const errorMessage = err.message || "Invalid OTP. Please try again.";
+      showToast(errorMessage, 'error');
     }
     setLoading(false);
   };
@@ -173,15 +186,30 @@ export default function SignupFlow() {
         password: fields.password,
       });
       setStep(3);
+      showToast('Password set successfully! Account created!', 'success');
     } catch (err) {
-      setApiError(err.message || "Error setting password.");
+      const errorMessage = err.message || "Error setting password.";
+      showToast(errorMessage, 'error');
     }
     setLoading(false);
   };
 
-  // FIXED: This function now properly navigates to login
   const handleNavigate = () => {
+    showToast('Redirecting to login...', 'info');
     navigate('/login');
+  };
+
+  const handleResendOtp = async () => {
+    setLoading(true);
+    try {
+      const { firstName, lastName, email, phone, username } = fields;
+      await signup({ firstName, lastName, email, phone, username });
+      showToast('Verification code resent to your email!', 'success');
+    } catch (err) {
+      const errorMessage = err.message || "Failed to resend OTP. Please try again.";
+      showToast(errorMessage, 'error');
+    }
+    setLoading(false);
   };
 
   const handleNext = async () => {
@@ -190,7 +218,7 @@ export default function SignupFlow() {
     if (step === 0) await handleSignup();
     else if (step === 1) await handleVerifyOtp();
     else if (step === 2) await handleSetPassword();
-    else if (step === 3) handleNavigate(); // This will now work properly
+    else if (step === 3) handleNavigate();
   };
 
   return (
@@ -325,8 +353,13 @@ export default function SignupFlow() {
               </div>
               <div className="text-xs text-gray-400">
                 Didn't receive the email?{" "}
-                <button type="button" className="text-indigo-500 underline">
-                  Resend
+                <button 
+                  type="button" 
+                  className="text-indigo-500 underline"
+                  onClick={handleResendOtp}
+                  disabled={loading}
+                >
+                  {loading ? "Sending..." : "Resend"}
                 </button>
               </div>
             </>
@@ -396,13 +429,6 @@ export default function SignupFlow() {
             </>
           )}
 
-          {/* Error Message */}
-          {apiError && (
-            <div className="text-red-500 text-xs sm:text-sm text-left mb-3 mt-3 p-2 bg-red-50 rounded-lg">
-              {apiError}
-            </div>
-          )}
-
           {/* Continue Button */}
           <button
             className={`mt-6 w-full py-3 bg-indigo-600 text-white text-sm sm:text-base font-medium rounded-lg hover:bg-indigo-700 transition-colors ${
@@ -422,9 +448,15 @@ export default function SignupFlow() {
 
           <div className="mt-4 text-center text-xs sm:text-sm text-gray-400">
             Already have an account?{" "}
-            <a href="/login" className="text-indigo-600 underline font-medium">
+            <button 
+              onClick={() => {
+                showToast('Redirecting to login...', 'info');
+                navigate('/login');
+              }}
+              className="text-indigo-600 underline font-medium"
+            >
               Sign in
-            </a>
+            </button>
           </div>
         </div>
       </main>

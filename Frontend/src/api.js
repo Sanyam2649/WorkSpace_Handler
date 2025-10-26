@@ -924,6 +924,24 @@ export const sendFriendRequest = async (friendId) => {
 };
 
 /**
+ * @param {string} type - workspace or document
+ * @param {string} id - workspaceId or DocumentId
+ * @param {string} settings - {policy : ""} 
+ */
+
+export const chatSettings = async ({type , id , settings}) => {
+  const response = await fetch(`${API_BASE_URL}/user/chat-settings`, {
+    method : 'POST',
+        headers: {
+      ...getAuthHeaders(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ type, id, settings }),
+  });
+  return handleResponse(response);
+};
+
+/**
  * Accept a friend invite
  * @param {string} friendId - ID of the user who sent the invite
  */

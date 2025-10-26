@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Edit, User, Mail, Shield, CheckCircle, XCircle, Trash2, Save, X, MoreVertical, Search, ArrowLeft, Filter } from 'lucide-react';
 import { updateWorkspaceMemberRole, removeWorkspaceMember, acceptWorkspaceRequest, rejectWorkspaceRequest } from '../api';
+import { useToast } from '../context/useToast';
 
 const roles = ["Viewer", "Editor", "Admin"];
 
@@ -8,24 +9,28 @@ const roles = ["Viewer", "Editor", "Admin"];
 const EditMemberForm = ({ workspaceId, member, onMemberUpdated, onClose, isMobile }) => {
     const [selectedRole, setSelectedRole] = useState(member.roles[0]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const { showToast } = useToast();
 
     const handleUpdateRole = async () => {
-        if (selectedRole === member.roles[0]) return;
+        if (selectedRole === member.roles[0]) {
+            showToast('Role is already set to this value', 'info');
+            return;
+        }
 
         setLoading(true);
-        setError('');
         setSuccess('');
-
         try {
+            showToast(`Updating ${member.user.firstName}'s role to ${selectedRole}...`, 'info');
             await updateWorkspaceMemberRole(workspaceId, member.user._id, [selectedRole]);
             setSuccess('Role updated successfully!');
+            showToast(`Successfully updated ${member.user.firstName}'s role to ${selectedRole}`, 'success');
             setTimeout(() => {
                 if (onMemberUpdated) onMemberUpdated();
             }, 1500);
         } catch (err) {
-            setError(err.message || 'Failed to update role');
+            const errorMessage = err.message || 'Failed to update role';
+            showToast(errorMessage, 'error');
         } finally {
             setLoading(false);
         }
@@ -33,20 +38,23 @@ const EditMemberForm = ({ workspaceId, member, onMemberUpdated, onClose, isMobil
 
     const handleRemoveMember = async () => {
         if (!confirm(`Are you sure you want to remove ${member.user.firstName} ${member.user.lastName} from this workspace?`)) {
+            showToast('Member removal cancelled', 'info');
             return;
         }
 
         setLoading(true);
-        setError('');
 
         try {
+            showToast(`Removing ${member.user.firstName} from workspace...`, 'info');
             await removeWorkspaceMember(workspaceId, member.user._id);
             setSuccess('Member removed successfully!');
+            showToast(`Successfully removed ${member.user.firstName} from workspace`, 'success');
             setTimeout(() => {
                 if (onMemberUpdated) onMemberUpdated();
             }, 1500);
         } catch (err) {
-            setError(err.message || 'Failed to remove member');
+            const errorMessage = err.message || 'Failed to remove member';
+            showToast(errorMessage, 'error');
         } finally {
             setLoading(false);
         }
@@ -54,16 +62,18 @@ const EditMemberForm = ({ workspaceId, member, onMemberUpdated, onClose, isMobil
 
     const handleAcceptRequest = async () => {
         setLoading(true);
-        setError('');
 
         try {
+            showToast(`Accepting ${member.user.firstName}'s join request...`, 'info');
             await acceptWorkspaceRequest(workspaceId, member.user._id);
             setSuccess('Request accepted successfully!');
+            showToast(`Successfully accepted ${member.user.firstName}'s join request`, 'success');
             setTimeout(() => {
                 if (onMemberUpdated) onMemberUpdated();
             }, 1500);
         } catch (err) {
-            setError(err.message || 'Failed to accept request');
+            const errorMessage = err.message || 'Failed to accept request';
+            showToast(errorMessage, 'error');
         } finally {
             setLoading(false);
         }
@@ -71,20 +81,23 @@ const EditMemberForm = ({ workspaceId, member, onMemberUpdated, onClose, isMobil
 
     const handleRejectRequest = async () => {
         if (!confirm(`Are you sure you want to reject ${member.user.firstName}'s join request?`)) {
+            showToast('Request rejection cancelled', 'info');
             return;
         }
 
         setLoading(true);
-        setError('');
 
         try {
+            showToast(`Rejecting ${member.user.firstName}'s join request...`, 'info');
             await rejectWorkspaceRequest(workspaceId, member.user._id);
             setSuccess('Request rejected successfully!');
+            showToast(`Successfully rejected ${member.user.firstName}'s join request`, 'success');
             setTimeout(() => {
                 if (onMemberUpdated) onMemberUpdated();
             }, 1500);
         } catch (err) {
-            setError(err.message || 'Failed to reject request');
+            const errorMessage = err.message || 'Failed to reject request';
+            showToast(errorMessage, 'error');
         } finally {
             setLoading(false);
         }
@@ -129,6 +142,16 @@ const EditMemberForm = ({ workspaceId, member, onMemberUpdated, onClose, isMobil
 
     const statusInfo = getStatusInfo();
 
+    const handleRoleSelect = (role) => {
+        setSelectedRole(role);
+        showToast(`Role selected: ${role}`, 'info');
+    };
+
+    const handleClose = () => {
+        showToast('Closing member editor', 'info');
+        if (onClose) onClose();
+    };
+
     return (
         <div className={`${isMobile ? 'w-full' : 'max-w-2xl'} mx-auto p-3 sm:p-4`}>
             {/* Header - Responsive */}
@@ -136,7 +159,7 @@ const EditMemberForm = ({ workspaceId, member, onMemberUpdated, onClose, isMobil
                 <div className="flex items-center gap-2 sm:gap-3">
                     {isMobile && (
                         <button
-                            onClick={onClose}
+                            onClick={handleClose}
                             className="p-1 hover:bg-base-300 rounded-lg transition-all duration-200 mr-1"
                         >
                             <ArrowLeft size={18} className="text-base-content/60" />
@@ -152,7 +175,7 @@ const EditMemberForm = ({ workspaceId, member, onMemberUpdated, onClose, isMobil
                 </div>
                 {!isMobile && (
                     <button
-                        onClick={onClose}
+                        onClick={handleClose}
                         className="p-1 hover:bg-base-300 rounded-lg transition-all duration-200"
                     >
                         <X size={18} className="text-base-content/60" />
@@ -221,7 +244,7 @@ const EditMemberForm = ({ workspaceId, member, onMemberUpdated, onClose, isMobil
                                             ? 'border-primary bg-primary/5'
                                             : 'border-base-300 hover:border-base-400 hover:bg-base-200'
                                         }`}
-                                    onClick={() => setSelectedRole(role)}
+                                    onClick={() => handleRoleSelect(role)}
                                 >
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-1.5 sm:gap-2">
@@ -314,12 +337,6 @@ const EditMemberForm = ({ workspaceId, member, onMemberUpdated, onClose, isMobil
 
             {/* Status Messages - Responsive */}
             <div className="mt-3 sm:mt-4 space-y-1.5 sm:space-y-2">
-                {error && (
-                    <div className="p-2 rounded-lg bg-error/10 border border-error/20 text-error-content text-xs flex items-center gap-1.5 sm:gap-2">
-                        <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-error-content rounded-full flex-shrink-0"></div>
-                        <div className="flex-1 text-xs">{error}</div>
-                    </div>
-                )}
 
                 {success && (
                     <div className="p-2 rounded-lg bg-success/10 border border-success/20 text-success-content text-xs flex items-center gap-1.5 sm:gap-2">
@@ -373,11 +390,12 @@ const MobileMemberEditSheet = ({ workspaceId, member, onMemberUpdated, onClose }
 };
 
 // Main Edit Members List Modal
-const EditMembersList = ({ workspaceId, members, onMembersUpdated, onClose }) => {
+const EditMembersList = ({ workspaceId, members, onMembersUpdated }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedMember, setSelectedMember] = useState(null);
     const [filteredMembers, setFilteredMembers] = useState(members);
     const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'active', 'pending', 'inactive'
+    const { showToast } = useToast();
 
     // Filter members based on search and status
     useEffect(() => {
@@ -418,6 +436,38 @@ const EditMembersList = ({ workspaceId, members, onMembersUpdated, onClose }) =>
 
     const isMobile = window.innerWidth < 768;
 
+    const handleSearch = (query) => {
+        setSearchQuery(query);
+        if (query.trim()) {
+            showToast(`Searching for "${query}"...`, 'info');
+        }
+    };
+
+    const handleStatusFilterChange = (filter) => {
+        setStatusFilter(filter);
+        if (filter !== 'all') {
+            showToast(`Filtering by ${filter} members`, 'info');
+        } else {
+            showToast('Showing all members', 'info');
+        }
+    };
+
+    const handleMemberSelect = (member) => {
+        setSelectedMember(member);
+        showToast(`Editing ${member.user.firstName}'s permissions`, 'info');
+    };
+
+    const handleMemberEditClose = () => {
+        setSelectedMember(null);
+        showToast('Member editor closed', 'info');
+    };
+
+    const handleMemberUpdated = () => {
+        if (onMembersUpdated) onMembersUpdated();
+        setSelectedMember(null);
+        showToast('Member list updated', 'success');
+    };
+
     return (
         <div className="max-w-6xl mx-auto p-2 sm:p-4 lg:p-6">
             <div className="mb-4 sm:mb-6 space-y-2 sm:space-y-0 sm:flex sm:gap-3">
@@ -427,14 +477,14 @@ const EditMembersList = ({ workspaceId, members, onMembersUpdated, onClose }) =>
                         type="text"
                         placeholder="Search members..."
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(e) => handleSearch(e.target.value)}
                         className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-3 border border-base-300 rounded-lg sm:rounded-xl bg-base-100 text-base-content placeholder-base-content/50 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                     />
                 </div>
                 {isMobile ? (
                     <select
                         value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
+                        onChange={(e) => handleStatusFilterChange(e.target.value)}
                         className="w-full px-3 py-2 border border-base-300 rounded-lg bg-base-100 text-base-content focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
                     >
                         <option value="all">All Members</option>
@@ -452,7 +502,7 @@ const EditMembersList = ({ workspaceId, members, onMembersUpdated, onClose }) =>
                         ].map((filter) => (
                             <button
                                 key={filter.value}
-                                onClick={() => setStatusFilter(filter.value)}
+                                onClick={() => handleStatusFilterChange(filter.value)}
                                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                                     statusFilter === filter.value
                                         ? 'bg-primary text-primary-content shadow-sm'
@@ -537,7 +587,7 @@ const EditMembersList = ({ workspaceId, members, onMembersUpdated, onClose }) =>
                                                     {member.roles[0]}
                                                 </div>
                                                 <button
-                                                    onClick={() => setSelectedMember(member)}
+                                                    onClick={() => handleMemberSelect(member)}
                                                     className="p-1.5 sm:p-2 rounded-lg bg-base-300 text-base-content/60 hover:bg-primary hover:text-primary-content transition-all duration-200 hover:scale-110 group-hover:bg-primary group-hover:text-primary-content"
                                                     title="Edit member"
                                                 >
@@ -572,23 +622,17 @@ const EditMembersList = ({ workspaceId, members, onMembersUpdated, onClose }) =>
                     <MobileMemberEditSheet
                         workspaceId={workspaceId}
                         member={selectedMember}
-                        onMemberUpdated={() => {
-                            if (onMembersUpdated) onMembersUpdated();
-                            setSelectedMember(null);
-                        }}
-                        onClose={() => setSelectedMember(null)}
+                        onMemberUpdated={handleMemberUpdated}
+                        onClose={handleMemberEditClose}
                     />
                 ) : (
-                    <div className="z-50 flex items-center justify-center p-2 sm:p-4">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm">
                         <div className="bg-base-100 rounded-xl sm:rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-in zoom-in duration-300">
                             <EditMemberForm
                                 workspaceId={workspaceId}
                                 member={selectedMember}
-                                onMemberUpdated={() => {
-                                    if (onMembersUpdated) onMembersUpdated();
-                                    setSelectedMember(null);
-                                }}
-                                onClose={() => setSelectedMember(null)}
+                                onMemberUpdated={handleMemberUpdated}
+                                onClose={handleMemberEditClose}
                                 isMobile={false}
                             />
                         </div>

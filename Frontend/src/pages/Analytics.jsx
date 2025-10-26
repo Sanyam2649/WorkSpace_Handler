@@ -30,6 +30,7 @@ import {
   setTimeRange,
   clearAnalyticsError,
 } from "../reducer/slices/analyticSlice";
+import { useToast } from '../context/useToast';
 
 // Lucide Icons
 import {
@@ -173,6 +174,7 @@ const SectionHeader = ({ title, description, onRefresh, refreshInProgress, icon:
 
 export default function Analytics() {
   const dispatch = useDispatch();
+  const { showToast } = useToast();
   const {
     overview,
     activity,
@@ -206,6 +208,7 @@ export default function Analytics() {
   }, [autoRefresh, dispatch]);
 
   const handleTimeRangeChange = (newTimeRange) => {
+    showToast(`Time range changed to ${TIME_RANGE_OPTIONS.find(opt => opt.value === newTimeRange)?.label}`, 'info');
     dispatch(setTimeRange(newTimeRange));
     dispatch(clearAnalyticsError());
   };
@@ -213,12 +216,23 @@ export default function Analytics() {
   const handleExport = async (format = "json") => {
     try {
       await dispatch(exportAnalyticsData({ format, timeRange })).unwrap();
+      showToast(`Analytics data exported successfully as ${format.toUpperCase()}!`, 'success');
     } catch (error) {
+      const errorMessage = error.message || 'Export failed';
+      showToast(errorMessage, 'error');
       console.error("Export failed:", error);
     }
   };
 
   const handleRefreshSection = async (section) => {
+    const sectionNames = {
+      overview: 'Performance Overview',
+      activity: 'Activity Over Time',
+      userActivity: 'Peak Activity Hours',
+      topWorkspaces: 'Top Performing Workspaces',
+      recentDocs: 'Recent Documents'
+    };
+
     // Set loading state for specific section
     setRefreshingSections(prev => ({
       ...prev,
@@ -227,7 +241,10 @@ export default function Analytics() {
 
     try {
       await dispatch(refreshAnalyticsSection({ section, timeRange })).unwrap();
+      showToast(`${sectionNames[section]} updated successfully!`, 'success');
     } catch (error) {
+      const errorMessage = error.message || `Failed to refresh ${sectionNames[section]}`;
+      showToast(errorMessage, 'error');
       console.error(`Refresh failed for ${section}:`, error);
     } finally {
       // Clear loading state for specific section
@@ -239,6 +256,7 @@ export default function Analytics() {
   };
 
   const handleRefreshAll = () => {
+    showToast('Refreshing all analytics data...', 'info');
     dispatch(fetchAllAnalytics(timeRange));
   };
 

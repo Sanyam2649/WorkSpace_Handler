@@ -4,17 +4,32 @@ import Footer from '../components/Footer';
 import DashboardMainSection from '../subComponent/DashboardMainSlide';
 import SearchMemberSlide from '../subComponent/DashboardSearchMemberSlide';
 import WorkSpaceSlide from '../subComponent/DashboardWorkSpaceSlide';
-import { ChevronLeft, ChevronRight, Circle, Square } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Circle, Square, X } from 'lucide-react';
+import { useToast } from '../context/useToast';
 
 export default function Dashboard() {
   const [activeSlide, setActiveSlide] = useState(0);
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
+  const { showToast } = useToast();
+
 
   const slides = [ 
-    { component: <WorkSpaceSlide />, title: "Workspaces", icon: "🏢" }, 
-    { component: <SearchMemberSlide />, title: "Find Members", icon: "👥" },
-    { component: <DashboardMainSection />, title: "Dashboard", icon: "📊" }
+    { 
+      component: <WorkSpaceSlide showToast={showToast} />, 
+      title: "Workspaces", 
+      icon: "🏢" 
+    }, 
+    { 
+      component: <SearchMemberSlide showToast={showToast} />, 
+      title: "Find Members", 
+      icon: "👥" 
+    },
+    { 
+      component: <DashboardMainSection showToast={showToast} />, 
+      title: "Dashboard", 
+      icon: "📊" 
+    }
   ];
 
   // Minimum swipe distance

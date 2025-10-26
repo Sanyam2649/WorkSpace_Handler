@@ -4,6 +4,7 @@ import userReducer from './slices/authSlice';
 import workspaceReducer from './slices/workSpaceSlice';
 import documentsReducer from './slices/documentSlice';
 import analyticsReducer from './slices/analyticSlice';
+import toastMiddleware from '../middleware/toastMiddleware';
 
 const store = configureStore({
   reducer: {
@@ -12,7 +13,12 @@ const store = configureStore({
     documents: documentsReducer,
     analytics: analyticsReducer
   },
-  // middleware and devTools enabled by default in Redux Toolkit
+    middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: {
+        ignoredActions: ['SHOW_TOAST'],
+      },
+    }).concat(toastMiddleware)
 });
 
 export default store;

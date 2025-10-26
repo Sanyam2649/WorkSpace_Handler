@@ -1,9 +1,10 @@
-import { useState ,useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { login, setAuth, getAndClearLastPage, isAuthenticated } from '../api';
-import { Eye, EyeOff , ChevronLeft , ChevronRight , UserRound} from "lucide-react";
+import { Eye, EyeOff, ChevronLeft, ChevronRight, UserRound } from "lucide-react";
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { setUser } from '../reducer/slices/authSlice';
 import { useDispatch } from 'react-redux';
+import { useToast } from '../context/useToast';
 
 const testimonials = [
   {
@@ -37,6 +38,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
   const dispatch = useDispatch();
+  const { showToast } = useToast();
   
   useEffect(() => {
     if (isAuthenticated()) {
@@ -55,12 +57,14 @@ const Login = () => {
         setAuth(accessToken, refreshToken, userData);
         window.history.replaceState({}, document.title, window.location.pathname);
         const lastPage = getAndClearLastPage();
+        showToast('Successfully logged in via OAuth!', 'success');
         navigate(lastPage);
       } catch (error) {
         console.error('Error parsing OAuth data:', error);
+        showToast('Failed to process OAuth login', 'error');
       }
     }
-  }, [searchParams, navigate]);
+  }, [searchParams, navigate, showToast]);
 
   const prevTestimonial = () => {
     setCurrentIndex((prevIndex) =>
@@ -86,29 +90,47 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    
+    // Validate form
+    if (!formData.identifier.trim() || !formData.password.trim()) {
+      showToast('Please fill in all fields', 'error');
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await login(formData.identifier, formData.password);
       setAuth(response.accessToken, response.refreshToken, response.user);
       
       dispatch(setUser(response.user));
+      showToast('Successfully logged in!', 'success');
       navigate('/dashboard');
     } catch (err) {
-      setError(err.message || 'Login failed. Please try again.');
+      const errorMessage = err.message || 'Login failed. Please try again.';
+-      showToast(errorMessage, 'error');
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleLogin = () => {
+    showToast('Redirecting to Google...', 'info');
     window.location.href = `${import.meta.env.VITE_BACKEND_URL}/api/user/google`;
   };
   
   const handleGitHubLogin = () => {
+    showToast('Redirecting to GitHub...', 'info');
     window.location.href = `${import.meta.env.VITE_BACKEND_URL}/api/user/github`;
   };
   
   const handleSignup = () => {
+    showToast('Redirecting to signup...', 'info');
     navigate('/signup');
+  }
+
+  const handleForgotPassword = () => {
+    showToast('Redirecting to password recovery...', 'info');
+    navigate('/forgot-password');
   }
 
   const testimonial = testimonials[currentIndex];
@@ -208,7 +230,13 @@ const Login = () => {
                   <input type="checkbox" className="accent-blue-600 w-4 h-4" />
                   <span className="text-gray-500">Remember me</span>
                 </label>
-                <a href='/forgot-password' className="text-blue-500 hover:underline font-medium">Forgot password</a>
+                <button 
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="text-blue-500 hover:underline font-medium"
+                >
+                  Forgot password
+                </button>
               </div>
               
               <button
@@ -255,7 +283,11 @@ const Login = () => {
             {/* Sign Up Link */}
             <div className="text-center mt-6 text-gray-600 text-sm md:text-base">
               Don't have an account?{' '}
-              <button type="button" className="text-blue-600 hover:underline font-medium" onClick={handleSignup}>
+              <button 
+                type="button" 
+                className="text-blue-600 hover:underline font-medium" 
+                onClick={handleSignup}
+              >
                 Sign up
               </button>
             </div>
@@ -265,5 +297,5 @@ const Login = () => {
     </div>
   );
 };
-
+ 
 export default Login;

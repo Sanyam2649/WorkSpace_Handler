@@ -24,6 +24,7 @@ import {
   Grid3X3,
   List
 } from 'lucide-react';
+import {useToast} from "../context/useToast";
 
 // Responsive Modal Component
 const Modal = ({ isOpen, onClose, children, title, size = 'md', showCloseButton = true }) => {
@@ -146,6 +147,7 @@ const MobileBottomSheet = ({ isOpen, onClose, children, title }) => {
 export default function WorkspacesPage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   
   const { workspacesList, workspacesLoading, workspacesError } = useSelector(
     (state) => state.workspace
@@ -159,7 +161,15 @@ export default function WorkspacesPage() {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
 
   useEffect(() => {
-    dispatch(fetchAllWorkspaces());
+    const loadWorkspaces = async () => {
+      try {
+        await dispatch(fetchAllWorkspaces()).unwrap();
+        showToast('Workspaces loaded successfully');
+      } catch (error) {
+        showToast('Failed to load workspaces', 'error');
+      }
+    };
+    loadWorkspaces();
   }, [dispatch]);
 
   const getUserRole = (workspace) => {
@@ -185,14 +195,17 @@ export default function WorkspacesPage() {
   const handleSubmitSuccess = () => {
     setShowForm(false);
     setEditingWorkspace(null);
+    showToast(editingWorkspace ? 'Workspace updated successfully' : 'Workspace created successfully');
   };
 
   const handleDelete = async (workspaceId) => {
     try {
       await dispatch(deleteExistingWorkspace(workspaceId)).unwrap();
       setDeleteConfirm(null);
+      showToast('Workspace deleted successfully');
     } catch (err) {
       console.error('Delete failed:', err);
+      showToast('Failed to delete workspace', 'error');
     }
   };
 

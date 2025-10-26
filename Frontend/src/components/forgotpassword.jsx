@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Eye, EyeOff, CircleArrowLeft, ArrowLeft } from "lucide-react";
 import { forgotPassword, verifyOtp, resetPassword } from "../api";
 import { useNavigate } from "react-router-dom";
+import { useToast } from '../context/useToast';
 
 const steps = [
   "Your details",
@@ -36,8 +37,8 @@ export default function ForgotPasswordFlow() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [apiError, setApiError] = useState("");
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const handleChange = (e) => {
     setFields({ ...fields, [e.target.name]: e.target.value });
@@ -61,19 +62,20 @@ export default function ForgotPasswordFlow() {
     }
   };
 
-  // Step 0: Send email
   const handleForgotPassword = async () => {
     if (!fields.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-      setApiError("Enter a valid email address.");
+      const errorMessage = "Enter a valid email address.";
+      showToast(errorMessage, 'error');
       return;
     }
-    setApiError("");
     setLoading(true);
     try {
       await forgotPassword({ identifier: fields.email });
       setStep(1);
+      showToast('Password reset instructions sent to your email!', 'success');
     } catch (err) {
-      setApiError(err.message || "Failed to send reset instructions.");
+      const errorMessage = err.message || "Failed to send reset instructions.";
+      showToast(errorMessage, 'error');
     }
     setLoading(false);
   };
@@ -81,16 +83,18 @@ export default function ForgotPasswordFlow() {
   // Step 1: Verify OTP
   const handleVerifyOtp = async () => {
     if (fields.otp.some((digit) => digit === "")) {
-      setApiError("Enter all 4 digits of the OTP.");
+      const errorMessage = "Enter all 4 digits of the OTP.";
+      showToast(errorMessage, 'error');
       return;
     }
-    setApiError("");
     setLoading(true);
     try {
       await verifyOtp({ email: fields.email, otp: fields.otp.join("") });
       setStep(2);
+      showToast('OTP verified successfully!', 'success');
     } catch (err) {
-      setApiError(err.message || "Invalid OTP. Please try again.");
+      const errorMessage = err.message || "Invalid OTP. Please try again.";
+      showToast(errorMessage, 'error');
     }
     setLoading(false);
   };
@@ -98,24 +102,40 @@ export default function ForgotPasswordFlow() {
   // Step 2: Set new password
   const handleResetPassword = async () => {
     if (!fields.password || fields.password.length < 8) {
-      setApiError("Password must be at least 8 characters.");
+      const errorMessage = "Password must be at least 8 characters.";
+      showToast(errorMessage, 'error');
       return;
     }
     if (!/[!@#$%^&*(),.?":{}|<>]/.test(fields.password)) {
-      setApiError("Password must have at least one special character.");
+      const errorMessage = "Password must have at least one special character.";
+      showToast(errorMessage, 'error');
       return;
     }
     if (fields.password !== fields.confirmPassword) {
-      setApiError("Passwords do not match.");
+      const errorMessage = "Passwords do not match.";
+      showToast(errorMessage, 'error');
       return;
     }
-    setApiError("");
     setLoading(true);
     try {
       await resetPassword({ identifier: fields.email, newPassword: fields.password });
       setStep(3);
+      showToast('Password reset successfully!', 'success');
     } catch (err) {
-      setApiError(err.message || "Error setting password.");
+      const errorMessage = err.message || "Error setting password.";
+      showToast(errorMessage, 'error');
+    }
+    setLoading(false);
+  };
+
+  const handleResendOtp = async () => {
+    setLoading(true);
+    try {
+      await forgotPassword({ identifier: fields.email });
+      showToast('OTP resent to your email!', 'success');
+    } catch (err) {
+      const errorMessage = err.message || "Failed to resend OTP. Please try again.";
+      showToast(errorMessage, 'error');
     }
     setLoading(false);
   };
@@ -124,15 +144,25 @@ export default function ForgotPasswordFlow() {
     if (step === 0) await handleForgotPassword();
     else if (step === 1) await handleVerifyOtp();
     else if (step === 2) await handleResetPassword();
-    else if (step === 3) navigate("/login");
+    else if (step === 3) {
+      showToast('Redirecting to login...', 'info');
+      navigate("/login");
+    }
   };
 
   const handleBack = () => {
     if (step > 0) {
       setStep(step - 1);
+      showToast('Going back to previous step...', 'info');
     } else {
+      showToast('Redirecting to login...', 'info');
       navigate("/login");
     }
+  };
+
+  const handleLoginRedirect = () => {
+    showToast('Redirecting to login...', 'info');
+    navigate("/login");
   };
 
   return (
@@ -240,9 +270,10 @@ export default function ForgotPasswordFlow() {
                 <button
                   type="button"
                   className="text-indigo-500 underline"
-                  onClick={handleForgotPassword}
+                  onClick={handleResendOtp}
+                  disabled={loading}
                 >
-                  Resend
+                  {loading ? "Sending..." : "Resend"}
                 </button>
               </div>
             </>
@@ -301,11 +332,6 @@ export default function ForgotPasswordFlow() {
               </p>
             </>
           )}
-          {apiError && (
-            <div className="text-red-500 text-sm text-left mb-2 mt-2 p-2 bg-red-50 rounded-lg">
-              {apiError}
-            </div>
-          )}
           <button
             className={`mt-6 md:mt-8 w-full py-3 bg-indigo-600 text-white text-base md:text-lg font-medium rounded-lg hover:bg-indigo-700 transition-colors duration-200 ${
               loading && "opacity-60 cursor-not-allowed"
@@ -333,9 +359,12 @@ export default function ForgotPasswordFlow() {
           <StepIndicator current={step} />
           <div className="mt-4 text-center text-sm text-gray-400">
             Back to{" "}
-            <a href="/login" className="text-indigo-600 underline hover:text-indigo-700">
+            <button 
+              onClick={handleLoginRedirect}
+              className="text-indigo-600 underline hover:text-indigo-700"
+            >
               log in
-            </a>
+            </button>
           </div>
         </div>
       </main>
