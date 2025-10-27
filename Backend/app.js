@@ -13,10 +13,15 @@ const routes = require("./router/route");
 // --- Chat socket ---
 const chatSocket = require("./services/chat");
 const { default: performUserDeletion } = require("./services/userCleanUp");
+const User = require("./models/user");
 
 const app = express();
 
-app.use(cors({ origin: "*", credentials: true }));
+// app.use(cors({ origin: "*", credentials: true }));
+app.use(cors({
+  origin: ["http://localhost:5173", "https://colabspace.onrender.com"],
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -34,7 +39,10 @@ app.use((err, _req, res, _next) => {
 
 const PORT = process.env.PORT || 5000;
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*", credentials: true } });
+const io = new Server(server, cors({
+  origin: ["http://localhost:5173", "https://colabspace.onrender.com"],
+  credentials: true
+}));
 
 // Initialize chat socket
 chatSocket(io);
