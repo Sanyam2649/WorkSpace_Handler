@@ -354,12 +354,6 @@ router.patch("/profile", upload.single("avatar"), authMiddleware, async (req, re
           user.preferences.language = req.body["preferences.language"];
         if (typeof req.body["preferences.theme"] === "string")
           user.preferences.theme = req.body["preferences.theme"];
-        if (typeof req.body["preferences.notifications.email"] !== "undefined")
-          user.preferences.notifications.email = req.body["preferences.notifications.email"] === "true";
-        if (typeof req.body["preferences.notifications.sms"] !== "undefined")
-          user.preferences.notifications.sms = req.body["preferences.notifications.sms"] === "true";
-        if (typeof req.body["preferences.notifications.whatsapp"] !== "undefined")
-          user.preferences.notifications.whatsapp = req.body["preferences.notifications.whatsapp"] === "true";
       }
     }
 

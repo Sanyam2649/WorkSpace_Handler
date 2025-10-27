@@ -43,11 +43,6 @@ const Profile = () => {
     preferences: {
       language: 'en',
       theme: 'light',
-      notifications: {
-        email: true,
-        sms: false,
-        whatsapp: false,
-      },
     },
   });
   const [avatarFile, setAvatarFile] = useState(null);
@@ -72,11 +67,6 @@ const Profile = () => {
         preferences: {
           language: user.preferences?.language || 'en',
           theme: user.preferences?.theme || 'light',
-          notifications: {
-            email: user.preferences?.notifications?.email ?? true,
-            sms: user.preferences?.notifications?.sms ?? false,
-            whatsapp: user.preferences?.notifications?.whatsapp ?? false,
-          },
         },
       });
     } catch (err) {
@@ -92,11 +82,6 @@ const Profile = () => {
           preferences: {
             language: storedUser.preferences?.language || 'en',
             theme: storedUser.preferences?.theme || 'light',
-            notifications: {
-              email: storedUser.preferences?.notifications?.email ?? true,
-              sms: storedUser.preferences?.notifications?.sms ?? false,
-              whatsapp: storedUser.preferences?.notifications?.whatsapp ?? false,
-            },
           },
         });
       }
@@ -174,7 +159,10 @@ const Profile = () => {
       
       console.log(formData , "formData");
       
-      await updateProfile(formData, avatarFile);
+      const response = await updateProfile(formData, avatarFile);
+      if (response?.user) {
+            sessionStorage.setItem("user", JSON.stringify(response.user));
+          }
       
       setEditing(false);
       setAvatarFile(null);
@@ -191,7 +179,7 @@ const Profile = () => {
       setLoading(false);
     }
   };
-
+  
   const handleCancel = () => {
     loadUserData();
     setEditing(false);
@@ -477,66 +465,6 @@ const Profile = () => {
                         </select>
                       </div>
                     </div>
-
-                    {/* Notifications */}
-                    <div>
-                      <label className="block text-sm font-medium text-base-content mb-3 sm:mb-4 flex items-center gap-2">
-                        <Bell size={16} />
-                        Notification Preferences
-                      </label>
-                      <div className="space-y-2 sm:space-y-3">
-                        <label className="flex items-start sm:items-center gap-2 sm:gap-3 p-2 sm:p-3 border border-base-300 rounded-xl hover:bg-base-200 transition-colors cursor-pointer">
-                          <input
-                            type="checkbox"
-                            name="preferences.notifications.email"
-                            checked={formData.preferences.notifications.email}
-                            onChange={handleInputChange}
-                            className="w-4 h-4 text-primary rounded focus:ring-primary mt-0.5 sm:mt-0 flex-shrink-0"
-                          />
-                          <div className="flex items-center gap-2">
-                            <Mail size={18} className="text-primary flex-shrink-0" />
-                            <div>
-                              <span className="font-medium text-base-content text-sm sm:text-base">Email Notifications</span>
-                              <p className="text-xs sm:text-sm text-base-content/70">Receive updates via email</p>
-                            </div>
-                          </div>
-                        </label>
-
-                        <label className="flex items-start sm:items-center gap-2 sm:gap-3 p-2 sm:p-3 border border-base-300 rounded-xl hover:bg-base-200 transition-colors cursor-pointer">
-                          <input
-                            type="checkbox"
-                            name="preferences.notifications.sms"
-                            checked={formData.preferences.notifications.sms}
-                            onChange={handleInputChange}
-                            className="w-4 h-4 text-primary rounded focus:ring-primary mt-0.5 sm:mt-0 flex-shrink-0"
-                          />
-                          <div className="flex items-center gap-2">
-                            <Smartphone size={18} className="text-primary flex-shrink-0" />
-                            <div>
-                              <span className="font-medium text-base-content text-sm sm:text-base">SMS Notifications</span>
-                              <p className="text-xs sm:text-sm text-base-content/70">Receive updates via SMS</p>
-                            </div>
-                          </div>
-                        </label>
-
-                        <label className="flex items-start sm:items-center gap-2 sm:gap-3 p-2 sm:p-3 border border-base-300 rounded-xl hover:bg-base-200 transition-colors cursor-pointer">
-                          <input
-                            type="checkbox"
-                            name="preferences.notifications.whatsapp"
-                            checked={formData.preferences.notifications.whatsapp}
-                            onChange={handleInputChange}
-                            className="w-4 h-4 text-primary rounded focus:ring-primary mt-0.5 sm:mt-0 flex-shrink-0"
-                          />
-                          <div className="flex items-center gap-2">
-                            <MessageSquare size={18} className="text-primary flex-shrink-0" />
-                            <div>
-                              <span className="font-medium text-base-content text-sm sm:text-base">WhatsApp Notifications</span>
-                              <p className="text-xs sm:text-sm text-base-content/70">Receive updates via WhatsApp</p>
-                            </div>
-                          </div>
-                        </label>
-                      </div>
-                    </div>
                   </div>
                 </form>
               ) : (
@@ -630,28 +558,6 @@ const Profile = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-base-content mb-3 sm:mb-4 flex items-center gap-2">
-                        <Bell size={16} />
-                        Notification Preferences
-                      </label>
-                      <div className="space-y-2">
-                        {Object.entries(formData.preferences.notifications)
-                          .filter(([_, enabled]) => enabled)
-                          .map(([type]) => (
-                            <div key={type} className="inline-flex items-center gap-2 bg-primary/20 text-primary-content px-2.5 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium mr-2 mb-2">
-                              {type === 'email' && <Mail size={12} />}
-                              {type === 'sms' && <Smartphone size={12} />}
-                              {type === 'whatsapp' && <MessageSquare size={12} />}
-                              {type.charAt(0).toUpperCase() + type.slice(1)}
-                            </div>
-                          ))}
-                        {Object.values(formData.preferences.notifications).every(enabled => !enabled) && (
-                          <span className="text-base-content/50 text-sm flex items-center gap-2">
-                            <Bell size={14} />
-                            No notifications enabled
-                          </span>
-                        )}
-                      </div>
                     </div>
                   </div>
                 </div>

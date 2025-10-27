@@ -5,10 +5,13 @@ import React, { createContext, useEffect, useState } from 'react';
 export const ThemeContext = createContext(null);
 
 export default function ToggleThemeProvider({ children }) {
-  const user = sessionStorage.getItem('user');
+const storedUser = sessionStorage.getItem("user");
+const user = storedUser ? JSON.parse(storedUser) : null;
 
   const [theme, setTheme] = useState('light');
   const [mounted, setMounted] = useState(false);
+  
+  
   useEffect(() => {
     if (user && user.preferences && (user.preferences.theme === 'light' || user.preferences.theme === 'dark')) {
       setTheme(user.preferences.theme);
@@ -18,6 +21,7 @@ export default function ToggleThemeProvider({ children }) {
     setMounted(true);
   }, [user]);
   
+  console.log(theme);
   useEffect(() => {
     if (mounted) {
       document.documentElement.setAttribute('data-theme', theme);

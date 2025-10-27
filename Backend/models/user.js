@@ -36,11 +36,6 @@ const userSchema = new mongoose.Schema(
     preferences: {
       language: { type: String, default: "en" },
       theme: { type: String, enum: ["light", "dark"], default: "light" },
-      notifications: {
-        email: { type: Boolean, default: true },
-        sms: { type: Boolean, default: false },
-        whatsapp: { type: Boolean, default: false },
-      },
     },
     friendList : [friendListSchema], 
     scheduledDeletion: { type: Date },
