@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { updateProfile, getStoredUser, deleteAccount } from '../api';
-import { fetchUser } from '../reducer/thunks/userThunk'
+// import { fetchUser } from '../reducer/thunks/userThunk'
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useToast } from '../context/useToast';
@@ -25,7 +25,7 @@ import {
 
 const Profile = () => {
   const user = useSelector((state) => state.user.value);
-  const dispatch = useDispatch();
+  // const dispatch = useDispatch();
   const { showToast } = useToast();
   
   const [loading, setLoading] = useState(false);
@@ -176,9 +176,6 @@ const Profile = () => {
       
       await updateProfile(formData, avatarFile);
       
-      // Refresh user data in Redux store after successful update
-      await dispatch(fetchUser()).unwrap();
-      
       setEditing(false);
       setAvatarFile(null);
       setAvatarPreview(null);
@@ -187,6 +184,7 @@ const Profile = () => {
       showToast(successMessage, 'success');
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
+      console.log(err);
       const errorMessage = err.message || 'Failed to update profile';
       showToast(errorMessage, 'error');
     } finally {
