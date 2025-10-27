@@ -1,6 +1,6 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect } from 'react';
-import { useDispatch} from 'react-redux';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import Dashboard from './pages/Dashboard';
 import Workspace from './pages/Workspace';
 import WorkspacesPage from './pages/workspaces';
@@ -9,23 +9,33 @@ import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
 import { fetchUser } from './reducer/thunks/userThunk'; 
 import OAuthRedirectHandler from './components/oAuthHandler';
-import { fetchAllWorkspaces } from './reducer/thunks/WorkSpaceThunk';
-import WorkspaceDetail from './subComponent/workSpaceDetail';
 import Login from './components/Login';
 import SignupFlow from './components/Signup';
-import Chat from './components/Chat';
 import LandingPage from './pages/landingPage';
 import ForgotPasswordFlow from './components/forgotpassword';
+import { fetchAllWorkspaces } from './reducer/thunks/WorkSpaceThunk';
 
 function App() {
-  const dispatch = useDispatch();  
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.user.value);
+  const userLoading = useSelector((state) => state.user.loading);
+  const hasFetched = useRef(false);
+  
   useEffect(() => {
     const token = sessionStorage.getItem('accessToken');
-    if (token) {
+    if (token && !user && !userLoading && !hasFetched.current) {
+      console.log('🔄 Initial user fetch...');
+      hasFetched.current = true;
       dispatch(fetchUser());
+    }
+  }, [dispatch, user, userLoading]);
+  
+  useEffect(() => {
+    if(user)
+    {
       dispatch(fetchAllWorkspaces());
     }
-  }, [dispatch]);
+  }, [dispatch , user, userLoading]);
   
   return (
     <Router>
@@ -36,7 +46,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignupFlow />} />
           <Route path="/forgot-password" element={<ForgotPasswordFlow/>}/>
-]          <Route path="/auth-login" element={<OAuthRedirectHandler />} />
+          <Route path="/auth-login" element={<OAuthRedirectHandler />} />
           
           {/* Protected Routes */}
           <Route path="/dashboard" element={
@@ -64,10 +74,7 @@ function App() {
               <Analytics />
             </ProtectedRoute>
           } />
-          
-          {/* Fallback Routes */}
-          <Route path="/test" element={<WorkspaceDetail />} />
-          <Route path="/" element={<LandingPage/>} />
+          <Route path="*" element={<LandingPage />} />
         </Routes>
       </div>
     </Router>

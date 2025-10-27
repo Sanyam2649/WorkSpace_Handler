@@ -80,28 +80,27 @@ export default function Workspace() {
   const [activeChat, setActiveChat] = useState(null);
   const [isComponent, setIsComponent] = useState(false);
 
-  // useEffect(() => {
-  //   if (!id) return;
+  useEffect(() => {
+    if (!id) return;
 
-  //   console.log('Loading workspace data for:', id);
+    console.log('Loading workspace data for:', id);
 
-  //   const loadWorkspaceData = async () => {
-  //     try {
-  //       await dispatch(fetchWorkspace(id)).unwrap();
-  //       await dispatch(fetchWorkspaceDocuments(id)).unwrap();
-  //       showToast('Workspace loaded successfully');
-  //     } catch (error) {
-  //       console.error('Error loading workspace:', error);
-  //       showToast('Failed to load workspace', 'error');
-  //     }
-  //   };
+    const loadWorkspaceData = async () => {
+      try {
+        await dispatch(fetchWorkspace(id)).unwrap();
+        await dispatch(fetchWorkspaceDocuments(id)).unwrap();
+      } catch (error) {
+        console.error('Error loading workspace:', error);
+        showToast('Failed to load workspace', 'error');
+      }
+    };
 
-  //   loadWorkspaceData();
+    loadWorkspaceData();
 
-  //   return () => {
-  //     dispatch(clearSearchResults());
-  //   };
-  // }, [id, dispatch]);
+    return () => {
+      dispatch(clearSearchResults());
+    };
+  }, [id, dispatch]);
 
   useEffect(() => {
     if (currentView === 'chat' && currentWorkspace && !activeChat) {

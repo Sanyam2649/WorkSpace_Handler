@@ -3,7 +3,6 @@ import { createSlice } from "@reduxjs/toolkit";
 import { 
   fetchUser, 
   refreshToken, 
-  refreshTokenAndFetchUser 
 } from "../thunks/userThunk";
 
 const userSlice = createSlice({
@@ -71,29 +70,6 @@ const userSlice = createSlice({
         state.tokenRefreshing = false;
         state.tokenError = action.payload;
         // Auto-logout on token refresh failure
-        state.value = null;
-        sessionStorage.removeItem("accessToken");
-        sessionStorage.removeItem("refreshToken");
-      })
-      // Combined refresh token and fetch user
-      .addCase(refreshTokenAndFetchUser.pending, (state) => {
-        state.tokenRefreshing = true;
-        state.loading = true;
-        state.error = null;
-        state.tokenError = null;
-      })
-      .addCase(refreshTokenAndFetchUser.fulfilled, (state, action) => {
-        state.tokenRefreshing = false;
-        state.loading = false;
-        state.value = action.payload;
-        state.error = null;
-        state.tokenError = null;
-      })
-      .addCase(refreshTokenAndFetchUser.rejected, (state, action) => {
-        state.tokenRefreshing = false;
-        state.loading = false;
-        state.tokenError = action.payload;
-        // Auto-logout on combined operation failure
         state.value = null;
         sessionStorage.removeItem("accessToken");
         sessionStorage.removeItem("refreshToken");

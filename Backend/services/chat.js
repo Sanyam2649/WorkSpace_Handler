@@ -76,7 +76,7 @@ module.exports = (io) => {
             return;
           }
           const policy = ws.chatPolicy || "admin-editor";
-          logger.debug("Workspace chat policy check", { roomId, policy, from });
+          logger.info("Workspace chat policy check", { roomId, policy, from });
           
           if (policy === "admin-only") allowed = await onlyAdminChatInWorkspace(from, roomId);
           else if (policy === "admin-editor") allowed = await onlyAdminorEditorChatInWorkspace(from, roomId);

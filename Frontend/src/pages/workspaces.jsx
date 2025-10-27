@@ -22,9 +22,11 @@ import {
   FileText,
   X,
   Grid3X3,
-  List
+  List,
+  RefreshCw
 } from 'lucide-react';
 import {useToast} from "../context/useToast";
+import { useCallback } from 'react';
 
 // Responsive Modal Component
 const Modal = ({ isOpen, onClose, children, title, size = 'md', showCloseButton = true }) => {
@@ -160,17 +162,15 @@ export default function WorkspacesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
 
-  useEffect(() => {
-    const loadWorkspaces = async () => {
-      try {
-        await dispatch(fetchAllWorkspaces()).unwrap();
-        showToast('Workspaces loaded successfully');
-      } catch (error) {
-        showToast('Failed to load workspaces', 'error');
-      }
-    };
-    loadWorkspaces();
-  }, [dispatch]);
+ const handlePageRefresh = useCallback(async () => {
+  try {
+    await dispatch(fetchAllWorkspaces()).unwrap();
+    showToast('Workspaces loaded successfully');
+  } catch (error) {
+    showToast('Failed to load workspaces', 'error');
+  }
+}, [dispatch]);
+
 
   const getUserRole = (workspace) => {
     const member = workspace.members.find((m) => m.user === user?._id);
@@ -267,6 +267,7 @@ export default function WorkspacesPage() {
                 <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span className="text-sm sm:text-base">Create Workspace</span>
               </button>
+              <RefreshCw onClick = {handlePageRefresh}/>
             </div>
 
             {/* Search and Controls */}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import io from "socket.io-client";
 import { getFriendList, getChatHistory, chatSettings } from "../api";
 import ChatSelector from "./chatSelector";
@@ -36,6 +36,57 @@ const EMOJIS = [
   '😾'
 ];
 
+// Memoized message component to prevent re-renders
+const MessageItem = React.memo(({ msg, isOwn, user, activeChat, formatTime }) => {
+  const renderMessageContent = useCallback((message) => {
+    return (
+      <div className="space-y-2">
+        {message.message && (
+          <div className="text-sm leading-relaxed break-words">{message.message}</div>
+        )}
+      </div>
+    );
+  }, []);
+
+  return (
+    <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+      <div className={`group relative max-w-xs sm:max-w-md px-3 py-2 sm:px-4 sm:py-3 rounded-xl sm:rounded-2xl ${
+        isOwn
+          ? 'bg-gradient-to-br from-primary to-secondary text-primary-content rounded-br-none sm:rounded-br-none shadow-lg'
+          : 'bg-base-300 text-base-content rounded-bl-none sm:rounded-bl-none border border-base-300 shadow-sm'
+        } ${msg.isSending ? 'opacity-70' : ''}`}>
+
+        {!isOwn && activeChat.type !== 'user' && (
+          <div className="text-xs sm:text-sm font-semibold text-base-content/80 mb-1 flex items-center gap-2">
+            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-accent rounded-full" />
+            {msg.user?.firstName || msg.user?.username || 'User'}
+          </div>
+        )}
+
+        {renderMessageContent(msg)}
+
+        <div className={`text-xs mt-1 sm:mt-2 flex items-center gap-1 ${
+          isOwn ? 'text-primary-content/80' : 'text-base-content/60'
+        }`}>
+          {formatTime(msg.createdAt)}
+          {isOwn && !msg.isSending && (
+            <CheckCheck size={12} className="sm:w-3.5 sm:h-3.5 text-primary-content/80" />
+          )}
+          {msg.isSending && (
+            <span className="text-xs">Sending...</span>
+          )}
+        </div>
+
+        {isOwn && (
+          <div className="absolute -top-6 sm:-top-8 right-0 bg-base-content text-base-100 px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none hidden sm:block">
+            {msg.isSending ? 'Sending...' : 'Delivered'}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
+
 const Chat = ({ isOpen, onClose, workspaceId, chatType = 'workspace' }) => {
   const [socket, setSocket] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -57,7 +108,21 @@ const Chat = ({ isOpen, onClose, workspaceId, chatType = 'workspace' }) => {
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const emojiPickerRef = useRef(null);
+  const socketRef = useRef(null);
   const user = useSelector((state) => state.user.value);
+
+  // Debug: Log state changes
+  useEffect(() => {
+    console.log("💬 Messages state updated:", messages.length, "messages");
+  }, [messages]);
+
+  useEffect(() => {
+    console.log("🔌 Socket connection state:", isConnected);
+  }, [isConnected]);
+
+  useEffect(() => {
+    console.log("🎯 Active chat:", activeChat);
+  }, [activeChat]);
 
   // Check if mobile on mount and resize
   useEffect(() => {
@@ -87,34 +152,33 @@ const Chat = ({ isOpen, onClose, workspaceId, chatType = 'workspace' }) => {
     };
   }, []);
 
-  // Auto-select workspace chat when provided
-  useEffect(() => {
-    if (workspaceId && workspaceList.length > 0 && !activeChat) {
-      const workspaceChat = workspaceList.find(w => w.workspaceId === workspaceId);
-      if (workspaceChat) {
-        handleSelectChat({
-          type: 'workspace',
-          roomId: workspaceId,
-          otherUserId: null,
-          name: workspaceChat.name,
-          ...workspaceChat
-        });
-      }
-    }
-  }, [workspaceId, workspaceList, activeChat]);
+  // Scroll to bottom when messages change
+  const scrollToBottom = useCallback(() => {
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
+  }, []);
 
-  // Initialize socket connection when chat opens
-  
--  useEffect(() => {
+  // Initialize socket connection
+  useEffect(() => {
     if (!isOpen || !user) return;
 
     console.log("🔌 Initializing socket connection...");
+    
+    // Disconnect existing socket if any
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+
     const sock = io(import.meta.env.VITE_APP_SOCKET_URL, {
+      withCredentials: true,
       auth: {
         token: sessionStorage.getItem("accessToken")
       }
     });
 
+    socketRef.current = sock;
     setSocket(sock);
 
     sock.on("connect", () => {
@@ -135,18 +199,41 @@ const Chat = ({ isOpen, onClose, workspaceId, chatType = 'workspace' }) => {
       setSocketLoading(false);
     });
 
+    // Enhanced message handling
     sock.on("chat:message", (message) => {
-      console.log("📨 New message received:", message);
+      console.log("📨 New message received from server:", message);
+      
       setMessages(prev => {
-        const filtered = prev.filter(msg => !msg.isSending);
-        if (filtered.some(msg => msg._id === message._id)) {
-          console.log("🔄 Duplicate message detected, skipping");
-          return filtered;
+        // Check if message already exists (by ID or by content for temp messages)
+        const messageExists = prev.some(msg => 
+          msg._id === message._id || 
+          (msg.isSending && msg.message === message.message && msg.from?._id === message.from?._id)
+        );
+        
+        if (messageExists) {
+          console.log("🔄 Message already exists, replacing temp message");
+          // Replace temporary message with real one
+          return prev.map(msg => 
+            (msg.isSending && msg.message === message.message && msg.from?._id === message.from?._id) 
+              ? { ...message, isSending: false }
+              : msg
+          );
+        } else {
+          console.log("✅ Adding new message to state");
+          return [...prev, { ...message, isSending: false }];
         }
-        console.log("✅ Adding new message to state");
-        return [...filtered, message];
       });
+      
       scrollToBottom();
+    });
+
+    sock.on("chat:typing", (data) => {
+      console.log("⌨️ Typing event:", data);
+      if (data.isTyping) {
+        setTypingUsers(prev => [...prev.filter(u => u.userId !== data.userId), data]);
+      } else {
+        setTypingUsers(prev => prev.filter(u => u.userId !== data.userId));
+      }
     });
 
     sock.on("chat:error", (error) => {
@@ -156,38 +243,64 @@ const Chat = ({ isOpen, onClose, workspaceId, chatType = 'workspace' }) => {
 
     return () => {
       console.log("🧹 Cleaning up socket connection");
-      sock.disconnect();
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
       setSocket(null);
       setIsConnected(false);
     };
-  }, [isOpen, user]);
+  }, [isOpen, user, scrollToBottom]);
 
-  // Load chat data
+  // Load chat data only once when opening
   useEffect(() => {
+    let mounted = true;
+    
     const loadChatData = async () => {
-      if (!isOpen) return;
+      if (!isOpen || friendList.length > 0) return;
 
       try {
         setLoading(true);
         const data = await getFriendList();
-        setFriendList(data.friendList || []);
-        setWorkspaceList(data.workspaceList || []);
+        if (mounted) {
+          setFriendList(data.friendList || []);
+          setWorkspaceList(data.workspaceList || []);
+        }
       } catch (err) {
         console.error("Error loading chat data:", err);
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
 
     loadChatData();
-  }, [isOpen]);
 
-  const verifyChatPermissions = async (chat) => {
+    return () => {
+      mounted = false;
+    };
+  }, [isOpen, friendList.length]);
+
+  // Auto-select workspace chat when provided
+  useEffect(() => {
+    if (workspaceId && workspaceList.length > 0 && !activeChat) {
+      const workspaceChat = workspaceList.find(w => w.workspaceId === workspaceId);
+      if (workspaceChat) {
+        handleSelectChat({
+          type: 'workspace',
+          roomId: workspaceId,
+          otherUserId: null,
+          name: workspaceChat.name,
+          ...workspaceChat
+        });
+      }
+    }
+  }, [workspaceId, workspaceList, activeChat]);
+
+  const verifyChatPermissions = useCallback(async (chat) => {
     if (!chat) return;
 
-    // For workspace chats, check if user can participate based on policy
     if (chat.type === 'workspace') {
-      const userRole = chat.userRole; // This should come from your API
+      const userRole = chat.userRole;
       
       switch (chatPolicy) {
         case 'admin-only':
@@ -201,16 +314,15 @@ const Chat = ({ isOpen, onClose, workspaceId, chatType = 'workspace' }) => {
           }
           break;
         case 'all':
-          // Everyone can participate
           break;
         default:
           break;
       }
     }
     return true;
-  };
+  }, [chatPolicy]);
 
-  const handleSettingsUpdate = async (settingsData) => {
+  const handleSettingsUpdate = useCallback(async (settingsData) => {
     try {
       const response = await chatSettings(settingsData);
       setChatPolicy(settingsData.settings.policy);
@@ -227,20 +339,20 @@ const Chat = ({ isOpen, onClose, workspaceId, chatType = 'workspace' }) => {
       console.error("Failed to update chat settings:", error);
       throw error;
     }
-  };
+  }, [activeChat]);
 
-  const handleEmojiSelect = (emoji) => {
+  const handleEmojiSelect = useCallback((emoji) => {
     setNewMessage(prev => prev + emoji);
     setShowEmojiPicker(false);
-  };
+  }, []);
 
-  const handleVoiceMessage = () => {
+  const handleVoiceMessage = useCallback(() => {
     alert('Voice message functionality would be implemented here.');
-  };
+  }, []);
 
   // Enhanced chat selection with proper socket room management
-  const handleSelectChat = async (chat) => {
-    if (!socket || !isConnected) {
+  const handleSelectChat = useCallback(async (chat) => {
+    if (!socketRef.current || !isConnected) {
       alert("Socket not connected. Please wait...");
       return;
     }
@@ -249,7 +361,7 @@ const Chat = ({ isOpen, onClose, workspaceId, chatType = 'workspace' }) => {
 
     // Leave previous chat room if exists
     if (activeChat) {
-      socket.emit("chat:leave", {
+      socketRef.current.emit("chat:leave", {
         type: activeChat.type,
         roomId: activeChat.roomId,
         userId: user._id
@@ -258,20 +370,18 @@ const Chat = ({ isOpen, onClose, workspaceId, chatType = 'workspace' }) => {
     }
 
     try {
-      // Verify permissions before joining
       await verifyChatPermissions(chat);
       
-      // Set active chat first
       setActiveChat(chat);
       setMessages([]);
       setSocketLoading(true);
-      // Set chat policy from chat settings
+
       if (chat.settings?.policy) {
         setChatPolicy(chat.settings.policy);
       }
 
       // Join new chat room
-      socket.emit("chat:join", {
+      socketRef.current.emit("chat:join", {
         type: chat.type,
         roomId: chat.roomId,
         userId: user._id,
@@ -279,7 +389,6 @@ const Chat = ({ isOpen, onClose, workspaceId, chatType = 'workspace' }) => {
       });
       console.log(`🎉 Joined chat: ${chat.type}_${chat.roomId}`);
 
-      // On mobile, close sidebar when chat is selected
       if (isMobile) {
         setSidebarOpen(false);
       }
@@ -291,11 +400,12 @@ const Chat = ({ isOpen, onClose, workspaceId, chatType = 'workspace' }) => {
           roomId: chat.roomId,
           userId: chat.otherUserId
         });
+        console.log("📚 Loaded chat history:", history.messages?.length, "messages");
         setMessages(history.messages || []);
         scrollToBottom();
-        setSocketLoading(false);
       } catch (err) {
         console.error("Failed to load chat history:", err);
+      } finally {
         setSocketLoading(false);
       }
     } catch (error) {
@@ -303,67 +413,84 @@ const Chat = ({ isOpen, onClose, workspaceId, chatType = 'workspace' }) => {
       alert(error.message);
       setSocketLoading(false);
     }
-  };
+  }, [activeChat, isConnected, user, verifyChatPermissions, isMobile, scrollToBottom]);
 
-  // Enhanced send message with policy check
-  const handleSendMessage = async (e) => {
+  // Enhanced send message with proper optimistic updates
+  const handleSendMessage = useCallback(async (e) => {
     e.preventDefault();
     
-    if (!newMessage.trim() || !socket || !activeChat || !isConnected) return;
+    if (!newMessage.trim() || !socketRef.current || !activeChat || !isConnected) {
+      console.log("❌ Cannot send message:", { 
+        hasMessage: !!newMessage.trim(), 
+        hasSocket: !!socketRef.current,
+        hasActiveChat: !!activeChat,
+        isConnected 
+      });
+      return;
+    }
+
+    const messageText = newMessage.trim();
+    console.log("🚀 Sending message:", messageText);
 
     try {
-      // Check permissions before sending
       await verifyChatPermissions(activeChat);
 
-      const messageData = {
+      // Create optimistic message with unique ID
+      const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const tempMessage = {
+        _id: tempId,
         type: activeChat.type,
         roomId: activeChat.roomId,
-        from: user._id,
-        to: activeChat.otherUserId,
-        message: newMessage.trim(),
-      };
-
-      // Optimistically add message
-      const tempMessage = {
-        _id: `temp-${Date.now()}`,
-        ...messageData,
         from: user,
+        to: activeChat.otherUserId,
+        message: messageText,
         createdAt: new Date(),
         isSending: true,
       };
 
-      setMessages(prev => [...prev, tempMessage]);
+      console.log("📝 Adding optimistic message:", tempMessage);
+
+      // Add optimistic message immediately
+      setMessages(prev => {
+        const newMessages = [...prev, tempMessage];
+        console.log("📦 Messages after optimistic update:", newMessages.length);
+        return newMessages;
+      });
+      
       setNewMessage("");
       scrollToBottom();
 
       // Stop typing indicator
       stopTyping();
 
+      // Prepare message data for socket
+      const messageData = {
+        type: activeChat.type,
+        roomId: activeChat.roomId,
+        from: user._id,
+        to: activeChat.otherUserId,
+        message: messageText,
+        tempId: tempId, // Send temp ID for reference
+      };
+
+      console.log("📤 Emitting message via socket:", messageData);
+      
       // Send via socket
-      socket.emit("chat:message", messageData);
+      socketRef.current.emit("chat:message", messageData);
 
     } catch (error) {
-      console.error("Permission denied:", error.message);
-      alert(error.message);
+      console.error("❌ Error sending message:", error);
+      alert("Failed to send message: " + error.message);
+      // Restore message if failed
+      setNewMessage(messageText);
     }
-  };
-
-  // Render message content
-  const renderMessageContent = (msg) => {
-    return (
-      <div className="space-y-2">
-        {msg.message && (
-          <div className="text-sm leading-relaxed break-words">{msg.message}</div>
-        )}
-      </div>
-    );
-  };
+  }, [newMessage, activeChat, isConnected, user, verifyChatPermissions, scrollToBottom]);
 
   // Typing indicators
-  const startTyping = () => {
-    if (!socket || !activeChat || !isConnected) return;
+  const startTyping = useCallback(() => {
+    if (!socketRef.current || !activeChat || !isConnected) return;
 
-    socket.emit("chat:typing", {
+    socketRef.current.emit("chat:typing", {
       type: activeChat.type,
       roomId: activeChat.roomId,
       userId: user._id,
@@ -377,12 +504,12 @@ const Chat = ({ isOpen, onClose, workspaceId, chatType = 'workspace' }) => {
     typingTimeoutRef.current = setTimeout(() => {
       stopTyping();
     }, 3000);
-  };
+  }, [activeChat, isConnected, user]);
 
-  const stopTyping = () => {
-    if (!socket || !activeChat || !isConnected) return;
+  const stopTyping = useCallback(() => {
+    if (!socketRef.current || !activeChat || !isConnected) return;
 
-    socket.emit("chat:typing", {
+    socketRef.current.emit("chat:typing", {
       type: activeChat.type,
       roomId: activeChat.roomId,
       userId: user._id,
@@ -392,19 +519,15 @@ const Chat = ({ isOpen, onClose, workspaceId, chatType = 'workspace' }) => {
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
-  };
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  }, [activeChat, isConnected, user]);
 
   // Enhanced handleClose function
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     console.log("🔒 Closing chat...");
     
     // Leave current chat room if active
-    if (socket && activeChat && isConnected) {
-      socket.emit("chat:leave", {
+    if (socketRef.current && activeChat && isConnected) {
+      socketRef.current.emit("chat:leave", {
         type: activeChat.type,
         roomId: activeChat.roomId,
         userId: user._id
@@ -413,10 +536,16 @@ const Chat = ({ isOpen, onClose, workspaceId, chatType = 'workspace' }) => {
     }
 
     // Clean up socket connection
-    if (socket) {
-      socket.disconnect();
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
       setSocket(null);
       console.log("🔌 Socket disconnected");
+    }
+
+    // Clean up timeouts
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
     }
 
     // Reset all state
@@ -437,30 +566,30 @@ const Chat = ({ isOpen, onClose, workspaceId, chatType = 'workspace' }) => {
     } else {
       console.warn("⚠️ No onClose prop provided");
     }
-  };
+  }, [activeChat, isConnected, user, onClose]);
 
-  const formatTime = (timestamp) => {
+  const formatTime = useCallback((timestamp) => {
     return new Date(timestamp).toLocaleTimeString([], {
       hour: '2-digit',
       minute: '2-digit'
     });
-  };
+  }, []);
 
-  const getChatIcon = (type) => {
+  const getChatIcon = useCallback((type) => {
     switch (type) {
       case 'user': return <Users size={16} />;
       case 'workspace': return <Briefcase size={16} />;
       default: return <MessageCircle size={16} />;
     }
-  };
+  }, []);
 
-  const getChatColor = (type) => {
+  const getChatColor = useCallback((type) => {
     switch (type) {
       case 'user': return 'from-primary to-secondary';
       case 'workspace': return 'from-accent to-info';
       default: return 'from-primary to-secondary';
     }
-  };
+  }, []);
 
   // Don't render if not open
   if (!isOpen) return null;
@@ -541,7 +670,7 @@ const Chat = ({ isOpen, onClose, workspaceId, chatType = 'workspace' }) => {
                     defaultType={chatType}
                     onClose={handleClose}
                     isMobile={isMobile}
-                    socket={socket}
+                    socket={socketRef.current}
                     currentUser={user}
                   />
                 </div>
@@ -603,15 +732,6 @@ const Chat = ({ isOpen, onClose, workspaceId, chatType = 'workspace' }) => {
                           <Settings size={18} className="sm:w-5 sm:h-5" />
                         </button>
                       )}
-                      
-                      {/* Close Button */}
-                      <button
-                        onClick={handleClose}
-                        className="p-2 sm:p-3 hover:bg-error/10 rounded-xl transition-all duration-200 group text-error hover:text-error/80"
-                        title="Close chat"
-                      >
-                        <X size={18} className="sm:w-6 sm:h-6 group-hover:scale-110 transition-transform" />
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -627,42 +747,16 @@ const Chat = ({ isOpen, onClose, workspaceId, chatType = 'workspace' }) => {
                     </div>
                   ) : (
                     <div className="space-y-3 sm:space-y-4 max-w-4xl mx-auto">
-                      {messages.map((msg) => {
-                        const isOwn = msg.from?._id === user._id || msg.from === user._id;
-                        return (
-                          <div key={msg._id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`group relative max-w-xs sm:max-w-md px-3 py-2 sm:px-4 sm:py-3 rounded-xl sm:rounded-2xl ${isOwn
-                                ? 'bg-gradient-to-br from-primary to-secondary text-primary-content rounded-br-none sm:rounded-br-none shadow-lg'
-                                : 'bg-base-300 text-base-content rounded-bl-none sm:rounded-bl-none border border-base-300 shadow-sm'
-                              } ${msg.isSending ? 'opacity-70' : ''}`}>
-
-                              {!isOwn && activeChat.type !== 'user' && (
-                                <div className="text-xs sm:text-sm font-semibold text-base-content/80 mb-1 flex items-center gap-2">
-                                  <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-accent rounded-full" />
-                                  {msg.user?.firstName || msg.user?.username || 'User'}
-                                </div>
-                              )}
-
-                              {renderMessageContent(msg)}
-
-                              <div className={`text-xs mt-1 sm:mt-2 flex items-center gap-1 ${isOwn ? 'text-primary-content/80' : 'text-base-content/60'
-                                }`}>
-                                {formatTime(msg.createdAt)}
-                                {isOwn && !msg.isSending && (
-                                  <CheckCheck size={12} className="sm:w-3.5 sm:h-3.5 text-primary-content/80" />
-                                )}
-                              </div>
-
-                              {/* Message status tooltip */}
-                              {isOwn && (
-                                <div className="absolute -top-6 sm:-top-8 right-0 bg-base-content text-base-100 px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none hidden sm:block">
-                                  {msg.isSending ? 'Sending...' : 'Delivered'}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
+                      {messages.map((msg) => (
+                        <MessageItem
+                          key={msg._id}
+                          msg={msg}
+                          isOwn={msg.from?._id === user._id || msg.from === user._id}
+                          user={user}
+                          activeChat={activeChat}
+                          formatTime={formatTime}
+                        />
+                      ))}
 
                       {/* Typing Indicator */}
                       {typingUsers.length > 0 && (
@@ -811,4 +905,4 @@ const Chat = ({ isOpen, onClose, workspaceId, chatType = 'workspace' }) => {
   );
 };
 
-export default Chat;
+export default React.memo(Chat);

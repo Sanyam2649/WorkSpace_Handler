@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getFriendList } from '../api';
 import { 
@@ -13,59 +13,72 @@ import {
   Rocket
 } from 'lucide-react';
 
+const getSlides = (friendCount, workspaceCount, documentCount) => [
+  {
+    title: "Team Collaboration",
+    description: "Connect with team members and work together seamlessly on projects",
+    icon: "👥",
+    stats: `${friendCount} Connections`,
+    gradient: "from-blue-500/10 to-purple-500/10",
+    color: "text-blue-600"
+  },
+  {
+    title: "Project Management",
+    description: "Organize tasks, set deadlines, and track progress in real-time",
+    icon: "📊",
+    stats: `${workspaceCount} Workspaces`,
+    gradient: "from-green-500/10 to-teal-500/10",
+    color: "text-green-600"
+  },
+  {
+    title: "Document Sharing",
+    description: "Share and collaborate on documents with your team",
+    icon: "📝",
+    stats: `${documentCount} Documents`,
+    gradient: "from-orange-500/10 to-red-500/10",
+    color: "text-orange-600"
+  }
+];
+
 const DashboardMainSection = () => {
   const navigate = useNavigate();
   const [activeSlide, setActiveSlide] = useState(0);
   const [friendList, setFriendList] = useState([]);
   const [workspaceList, setWorkspaceList] = useState([]);
   const [documentList, setDocumentList] = useState([]);
-  
-  const slides = [
-    {
-      title: "Team Collaboration",
-      description: "Connect with team members and work together seamlessly on projects",
-      icon: "👥",
-      stats: `${friendList.length} Connections`,
-      gradient: "from-blue-500/10 to-purple-500/10",
-      color: "text-blue-600"
-    },
-    {
-      title: "Project Management",
-      description: "Organize tasks, set deadlines, and track progress in real-time",
-      icon: "📊",
-      stats: `${workspaceList.length} Workspaces`,
-      gradient: "from-green-500/10 to-teal-500/10",
-      color: "text-green-600"
-    },
-    {
-      title: "Document Sharing",
-      description: "Share and collaborate on documents with your team",
-      icon: "📝",
-      stats: `${documentList.length} Documents`,
-      gradient: "from-orange-500/10 to-red-500/10",
-      color: "text-orange-600"
-    }
-  ];
+   const [isLoading, setIsLoading] = useState(false);
+  const [hasFetched, setHasFetched] = useState(false);
+   
+  const slides = useMemo(() => 
+    getSlides(friendList.length, workspaceList.length, documentList.length),
+    [friendList.length, workspaceList.length, documentList.length]
+  );
 
-  // Load friend list on component mount
+  // Load friend list on component mount - IMPROVED
   useEffect(() => {
     const loadFriendList = async () => {
+      // Prevent multiple simultaneous calls
+      if (isLoading || hasFetched) return;
+      
+      setIsLoading(true);
       try {
         const response = await getFriendList();
         setFriendList(response?.friendList || []);
         setWorkspaceList(response?.workspaceList || []);
         setDocumentList(response?.documentList || []);
+        setHasFetched(true);
       } catch (error) {
         console.error('Failed to load friend list:', error);
         setFriendList([]);
         setWorkspaceList([]);
         setDocumentList([]);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     loadFriendList();
-  }, []);
-
+  }, [isLoading, hasFetched]); 
   // Auto-rotate slides
   useEffect(() => {
     const interval = setInterval(() => {

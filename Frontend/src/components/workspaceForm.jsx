@@ -37,19 +37,13 @@ const WorkspaceForm = ({ workspace = null, onSubmitSuccess, onClose }) => {
     try {
       if (isEditMode) {
         // Update existing workspace
-        showToast('Updating workspace...', 'info');
         await updateWorkspace(workspace._id, { name, description });
         const updatedWorkspace = { ...workspace, name, description };
-        showToast('Workspace updated successfully!', 'success');
         if (onSubmitSuccess) onSubmitSuccess(updatedWorkspace);
       } else {
-        // Create new workspace
-        showToast('Creating workspace...', 'info');
         const newWorkspace = await createWorkspace({ name, description });
-        showToast('Workspace created successfully!', 'success');
         if (onSubmitSuccess) onSubmitSuccess(newWorkspace);
       }
-      // Close form after success
       onClose();
     } catch (err) {
       const errorMessage = err.message || 'Failed to save workspace';
@@ -77,27 +71,7 @@ const WorkspaceForm = ({ workspace = null, onSubmitSuccess, onClose }) => {
   };
 
   return (
-    <div className="flex items-center justify-center p-4 z-50 md:p-6">
-      <div className="bg-white rounded-xl w-full max-w-md md:max-w-lg mx-auto shadow-xl max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-200 bg-white">
-          <div>
-            <h2 className="text-lg md:text-xl font-semibold text-gray-900">
-              {isEditMode ? 'Edit Workspace' : 'Create Workspace'}
-            </h2>
-            <p className="text-sm text-gray-500 mt-1">
-              {isEditMode ? 'Update your workspace details' : 'Create a new workspace for collaboration'}
-            </p>
-          </div>
-          <button
-            onClick={handleCancel}
-            disabled={loading}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors duration-200 disabled:opacity-50"
-          >
-            <X size={20} className="text-gray-500" />
-          </button>
-        </div>
-
+      <div>
         {/* Form Content */}
         <div className="overflow-y-auto p-4 md:p-6">
           <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
@@ -196,7 +170,7 @@ const WorkspaceForm = ({ workspace = null, onSubmitSuccess, onClose }) => {
           </button>
         </div>
       </div>
-    </div>
+
   );
 };
 
